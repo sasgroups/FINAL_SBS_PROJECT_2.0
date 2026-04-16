@@ -1,24 +1,26 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import axios from "axios";
+import { cacheVideo, getCachedVideo, cleanupOrphanedVideos } from "../utils/videoCache";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
 export default function AdBanner() {
-  // State for ads list, current ad index, loading/error status, kiosk ID, and playing state
   const [ads, setAds] = useState([]);
   const [currentAdIndex, setCurrentAdIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [KIOSK_ID, setKioskId] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
 
-  // Refs for caching media elements, timer, video and image elements
-  const mediaCache = useRef(new Map());
-  const nextAdTimer = useRef(null);
   const videoRef = useRef(null);
   const imageRef = useRef(null);
+  const downloadingSet = useRef(new Set());
+  
+  const [activeAdUrl, setActiveAdUrl] = useState("");
 
-  // --- Retrieve Kiosk ID from localStorage on mount ---
+  const adsRef = useRef(ads);
+  useEffect(() => {
+    adsRef.current = ads;
+  }, [ads]);
+
   useEffect(() => {
     const kioskId = localStorage.getItem("kiosk_id");
     if (kioskId) {
@@ -30,295 +32,251 @@ export default function AdBanner() {
     }
   }, []);
 
-  // --- Helper to build the full URL for an ad ---
   const getAdSource = useCallback((ad) => {
-    if (!ad) return "";
-    // If the ad object already provides a direct URL, use it
-    if (ad.url) {
-      return ad.url;
-    }
-    // Fallback or default ads use a standard path
-    if (ad.is_fallback || ad.is_default) {
-      return `${API_URL}/uploads/${ad.filename}`;
-    }
-    // Normal ad: construct URL from filename
-    return `${API_URL}/uploads/${ad.filename}`;
+    if (!ad) return `${API_URL}/uploads/default-ad.png`;
+    if (ad.url) return ad.url;
+    if (ad.filename) return `${API_URL}/uploads/${ad.filename}`;
+    return `${API_URL}/uploads/default-ad.png`;
   }, [API_URL]);
 
-  // --- Determine if an ad is a video based on type or file extension ---
   const isAdVideo = useCallback((ad) => {
-    return ad.type?.toLowerCase() === "video" || 
-           ad.filename?.endsWith(".mp4") ||
-           ad.filename?.endsWith(".webm") ||
-           ad.filename?.endsWith(".mov");
+    return ad?.type?.toLowerCase() === "video" || 
+           ad?.filename?.endsWith(".mp4") ||
+           ad?.filename?.endsWith(".webm") ||
+           ad?.filename?.endsWith(".mov");
   }, []);
 
-  // --- Preload a single media (image or video) and store in cache ---
-  const preloadMedia = useCallback((ad) => {
-    const adSource = getAdSource(ad);
-    const isVideo = isAdVideo(ad);
+  const compareAds = (oldAds, newAds) => {
+    if (!oldAds || !newAds) return true;
+    if (oldAds.length !== newAds.length) return true;
+    
+    const oldIds = oldAds.map(ad => ad.id).sort().join(',');
+    const newIds = newAds.map(ad => ad.id).sort().join(',');
+    
+    return oldIds !== newIds;
+  };
 
-    return new Promise((resolve) => {
-      if (isVideo) {
-        // Create a hidden video element to preload
-        const video = document.createElement("video");
-        video.src = adSource;
-        video.preload = "auto";
-        video.muted = true; // required for autoplay in many browsers
-
-        video.addEventListener("loadeddata", () => {
-          // Store metadata in cache
-          mediaCache.current.set(ad.filename, {
-            type: "video",
-            element: video,
-            duration: video.duration * 1000 || 15000, // fallback 15s
-            loaded: true,
-            ad: ad,
-            source: adSource
-          });
-          resolve(true);
-        });
-
-        video.addEventListener("error", () => {
-          console.warn(`Failed to load video: ${adSource}`);
-          // Store as failed but still allow fallback to image
-          mediaCache.current.set(ad.filename, {
-            type: "image",
-            element: null,
-            duration: 7000,
-            loaded: false,
-            ad: ad,
-            source: adSource
-          });
-          resolve(false);
-        });
-
-        video.load(); // start loading
-      } else {
-        // Preload image
-        const img = new Image();
-        img.src = adSource;
-
-        img.onload = () => {
-          mediaCache.current.set(ad.filename, {
-            type: "image",
-            element: img,
-            duration: 7000, // default image duration
-            loaded: true,
-            ad: ad,
-            source: adSource
-          });
-          resolve(true);
-        };
-
-        img.onerror = () => {
-          console.warn(`Failed to load image: ${adSource}`);
-          mediaCache.current.set(ad.filename, {
-            type: "image",
-            element: null,
-            duration: 7000,
-            loaded: false,
-            ad: ad,
-            source: adSource
-          });
-          resolve(false);
-        };
-      }
-    });
-  }, [isAdVideo, getAdSource]);
-
-  // --- Preload all ads in parallel (used in background) ---
-  const preloadAllAds = useCallback(async (adsList) => {
-    const preloadPromises = adsList.map(ad => preloadMedia(ad));
-    await Promise.all(preloadPromises);
-  }, [preloadMedia]);
-
-  // --- Play the given ad using the video or image element ---
-  const playCurrentAd = useCallback((ad) => {
-    if (!ad) return;
-
-    const cachedAd = mediaCache.current.get(ad.filename);
-    const isVideo = isAdVideo(ad);
-
-    // Clear any previously scheduled timer
-    if (nextAdTimer.current) clearTimeout(nextAdTimer.current);
-
-    if (isVideo && videoRef.current) {
-      const adSource = getAdSource(ad);
-
-      // Set source and load video
-      videoRef.current.src = adSource;
-      videoRef.current.load();
-
-      const playPromise = videoRef.current.play();
-
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsPlaying(true);
-            // Set a backup timer based on video duration (in case onEnded doesn't fire)
-            const duration = cachedAd?.duration || 15000;
-            nextAdTimer.current = setTimeout(() => {
-              if (videoRef.current && !videoRef.current.ended) {
-                setCurrentAdIndex(prev => (prev + 1) % ads.length);
-              }
-            }, duration);
-          })
-          .catch((e) => {
-            if (e.name === 'AbortError') {
-              // Ignore AbortError: caused when component unmounts or src changes rapidly
-              return;
-            }
-            console.error("Video play failed:", e);
-            // If video fails, skip to next ad
-            setCurrentAdIndex(prev => (prev + 1) % ads.length);
-          });
-      }
-    } else {
-      // For images, set a timer to move to next ad
-      const duration = cachedAd?.duration || 7000;
-      nextAdTimer.current = setTimeout(() => {
-        setCurrentAdIndex(prev => (prev + 1) % ads.length);
-      }, duration);
-      setIsPlaying(false);
-    }
-  }, [ads.length, getAdSource, isAdVideo]);
-
-  // --- Video event handlers ---
-  const handleVideoEnded = useCallback(() => {
-    // Video finished naturally, move to next ad
-    if (nextAdTimer.current) clearTimeout(nextAdTimer.current);
-    setCurrentAdIndex(prev => (prev + 1) % ads.length);
-  }, [ads.length]);
-
-  const handleVideoError = useCallback((e) => {
-    console.error("Video error:", e);
-    setIsPlaying(false);
-    if (nextAdTimer.current) clearTimeout(nextAdTimer.current);
-    setCurrentAdIndex(prev => (prev + 1) % ads.length);
-  }, [ads.length]);
-
-  const handleVideoCanPlay = useCallback(() => {
-    // Video is ready, mark as playing
-    setIsPlaying(true);
-  }, []);
-
-  // --- Image error fallback ---
-  const handleImageError = useCallback((e) => {
-    console.error("Image load error");
-    e.target.src = `${API_URL}/uploads/default-ad.png`;
-  }, [API_URL]);
-
-  // --- Fetch ads for the specific kiosk ---
-  useEffect(() => {
+  const loadAds = useCallback(async (showLoading = true) => {
     if (!KIOSK_ID) return;
-
-    const fetchAds = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        console.log(`Loading ads for kiosk: ${KIOSK_ID}`);
-
-        const response = await axios.get(`${API_URL}/api/ads/kiosk/${KIOSK_ID}`, {
-          timeout: 10000,
-          headers: {
+    
+    try {
+      if (showLoading) setIsLoading(true);
+      setError(null);
+      
+      const cacheBust = new Date().getTime();
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), 10000);
+      
+      const response = await fetch(`${API_URL}/api/ads/kiosk/${KIOSK_ID}?t=${cacheBust}`, {
+        headers: {
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache'
-          }
-        });
+        },
+        signal: abortController.signal
+      });
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) throw new Error('Invalid response format');
+      
+      const data = await response.json();
+      
+      let adsData = [];
+      if (data && data.success === true) {
+        adsData = data.ads || [];
+      } else {
+        throw new Error('Invalid response format');
+      }
 
-        let adsData = [];
-
-        if (response.data && response.data.success === true) {
-          adsData = response.data.ads || [];
-          console.log(`Extracted ${adsData.length} ads from response`);
-        } else {
-          throw new Error('Invalid response format');
-        }
-
-        // If no ads returned, use a default ad
-        if (!adsData.length) {
-          adsData = [{
-            id: 0,
-            filename: "default-ad.png",
-            type: "image",
-            title: "Welcome",
-            is_default: true
-          }];
-        }
-
-        setAds(adsData);
-
-        // 🚀 OPTIMIZATION: Preload all ads in the background – do NOT await
-        preloadAllAds(adsData).catch(err => {
-          console.error("Background preload failed:", err);
-        });
-
-        // ✅ Immediately play the first ad without waiting for preload
-        if (adsData.length > 0) {
-          playCurrentAd(adsData[0]);
-        }
-
-      } catch (error) {
-        console.error("Failed to fetch ads:", error);
-        setError("Failed to load advertisements");
-
-        // Fallback to default ad
-        const defaultAd = [{
+      if (!adsData.length) {
+        adsData = [{
           id: 0,
           filename: "default-ad.png",
           type: "image",
           title: "Welcome",
           is_default: true
         }];
+      }
 
-        setAds(defaultAd);
-        // For fallback, we still preload but also play immediately
-        await preloadAllAds(defaultAd); // await here because we need cache for duration?
-        if (defaultAd.length > 0) {
-          playCurrentAd(defaultAd[0]);
+      setAds(prevAds => {
+        const hasChanged = compareAds(prevAds, adsData);
+        if (hasChanged) {
+           setCurrentAdIndex(0);
+           return adsData;
         }
-      } finally {
-        setIsLoading(false);
+        return prevAds;
+      });
+    } catch (err) {
+      console.error("Failed to fetch ads:", err);
+      if (adsRef.current.length === 0) {
+          setError("Failed to load advertisements");
+          setAds([{
+            id: 0,
+            filename: "default-ad.png",
+            type: "image",
+            title: "Welcome",
+            is_default: true
+          }]);
       }
-    };
+    } finally {
+      if (showLoading) setIsLoading(false);
+    }
+  }, [KIOSK_ID, API_URL]);
 
-    fetchAds();
-
-    // Auto-refresh ads every 5 minutes to pick up changes
-    const refreshInterval = setInterval(fetchAds, 5 * 60 * 1000);
-
-    // Cleanup on unmount or kiosk change
-    return () => {
-      if (nextAdTimer.current) clearTimeout(nextAdTimer.current);
-      if (videoRef.current) {
-        videoRef.current.pause();
-        videoRef.current.src = "";
-      }
-      mediaCache.current.clear();
-      clearInterval(refreshInterval);
-    };
-  }, [KIOSK_ID, preloadAllAds, playCurrentAd]);
-
-  // --- Effect to handle ad rotation (triggered when index changes) ---
   useEffect(() => {
-    if (!ads.length || isLoading || !KIOSK_ID) return;
+    if (!KIOSK_ID) return;
+    
+    loadAds(true);
+    
+    const eventSource = new EventSource(`${API_URL}/api/ads/kiosk/${KIOSK_ID}/updates-stream`);
+    
+    eventSource.onmessage = (event) => {
+      try {
+        if (!event.data) return;
+        const data = JSON.parse(event.data);
+        if (data.event === 'ads_updated') {
+          console.log("SSE push received in Banner: Ads updated!");
+          loadAds(false);
+        }
+      } catch (err) {
+        console.error("Error parsing SSE data", err);
+      }
+    };
+    
+    eventSource.onerror = () => {
+      console.log("SSE Stream error or reconnecting for banner...");
+    };
 
+    return () => {
+      eventSource.close();
+    };
+  }, [KIOSK_ID, loadAds, API_URL]);
+
+  // Preload next image
+  useEffect(() => {
+    if (ads.length > 1) {
+      const nextAd = ads[(currentAdIndex + 1) % ads.length];
+      if (nextAd && !isAdVideo(nextAd)) {
+        const img = new Image();
+        img.src = getAdSource(nextAd);
+      }
+    }
+  }, [currentAdIndex, ads, getAdSource, isAdVideo]);
+
+  // Background caching & orphaned clearance
+  useEffect(() => {
+    if (!ads || ads.length === 0) return;
+
+    const autoDownloadVideos = async () => {
+      const activeVideoUrls = ads
+        .filter(ad => isAdVideo(ad))
+        .map(ad => getAdSource(ad))
+        .filter(url => url);
+
+      if (activeVideoUrls.length > 0) {
+        await cleanupOrphanedVideos(activeVideoUrls);
+
+        for (const url of activeVideoUrls) {
+          if (!downloadingSet.current.has(url)) {
+            downloadingSet.current.add(url);
+            getCachedVideo(url).then(cached => {
+              if (!cached) {
+                console.log(`⬇️ Background downloading video: ${url}`);
+                fetch(url)
+                  .then(res => {
+                    if (!res.ok) throw new Error("Network not ok");
+                    return res.blob();
+                  })
+                  .then(blob => cacheVideo(url, blob))
+                  .catch(err => console.error(`Failed to cache ${url}`, err))
+                  .finally(() => downloadingSet.current.delete(url));
+              } else {
+                downloadingSet.current.delete(url);
+              }
+            });
+          }
+        }
+      }
+    };
+    autoDownloadVideos();
+  }, [ads, getAdSource, isAdVideo]);
+
+  // Cache-First Playback Resolver
+  useEffect(() => {
+    let objectUrl = null;
+    let isActive = true;
+
+    const resolveAdUrl = async () => {
+      const currentAd = ads[currentAdIndex];
+      if (!currentAd) {
+        if (isActive) setActiveAdUrl(`${API_URL}/uploads/default-ad.png`);
+        return;
+      }
+
+      const remoteUrl = getAdSource(currentAd);
+
+      if (isAdVideo(currentAd)) {
+        const cachedBlob = await getCachedVideo(remoteUrl);
+        if (cachedBlob && isActive) {
+          objectUrl = URL.createObjectURL(cachedBlob);
+          console.log(`▶️ Playing from local cache: ${remoteUrl}`);
+          setActiveAdUrl(objectUrl);
+        } else if (isActive) {
+          console.log(`🌐 Playing from remote (not cached yet): ${remoteUrl}`);
+          setActiveAdUrl(remoteUrl);
+        }
+      } else {
+        if (isActive) setActiveAdUrl(remoteUrl);
+      }
+    };
+
+    resolveAdUrl();
+
+    return () => {
+      isActive = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [ads, currentAdIndex, getAdSource, isAdVideo, API_URL]);
+
+  // Ad rotation logic
+  useEffect(() => {
+    if (ads.length <= 1) return;
+    
     const currentAd = ads[currentAdIndex];
     if (!currentAd) return;
+    
+    if (!isAdVideo(currentAd)) {
+      // Show image for 7 seconds
+      const timer = setTimeout(() => {
+        setCurrentAdIndex((prev) => (prev + 1) % ads.length);
+      }, 7000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [ads, currentAdIndex, isAdVideo]);
 
-    playCurrentAd(currentAd);
+  const handleVideoEnded = () => {
+    setCurrentAdIndex((prev) => (prev + 1) % ads.length);
+  };
 
-    // Cleanup timer on unmount or before next ad
-    return () => {
-      if (nextAdTimer.current) clearTimeout(nextAdTimer.current);
+  const handleVideoError = (e) => {
+    console.error("Video playback error:", e);
+    setTimeout(() => {
+      setCurrentAdIndex((prev) => (prev + 1) % ads.length);
+    }, 1000);
+  };
+
+  const handleImageError = (e) => {
+    console.error("Image load error:", e);
+    e.target.src = `${API_URL}/uploads/default-ad.png`;
+    e.target.onerror = () => {
+      setTimeout(() => {
+        setCurrentAdIndex((prev) => (prev + 1) % ads.length);
+      }, 1000);
     };
-  }, [currentAdIndex, ads, isLoading, KIOSK_ID, playCurrentAd]);
+  };
 
-  // --- Render UI ---
-
-  // If no kiosk ID and not loading, show configuration error
   if (!KIOSK_ID && !isLoading) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-black text-white">
@@ -335,7 +293,6 @@ export default function AdBanner() {
     );
   }
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-black text-white">
@@ -347,7 +304,6 @@ export default function AdBanner() {
     );
   }
 
-  // No ads after loading
   if (!ads.length) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-black text-white">
@@ -358,16 +314,12 @@ export default function AdBanner() {
     );
   }
 
-  // Current ad details
   const currentAd = ads[currentAdIndex];
-  const cachedAd = mediaCache.current.get(currentAd.filename);
+  if (!currentAd) return null;
   const isVideo = isAdVideo(currentAd);
-  const adSource = getAdSource(currentAd);
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-black">
-
-      {/* Error overlay (if any) */}
       {error && (
         <div className="absolute top-4 left-4 right-4 bg-red-500/80 text-white p-3 rounded z-10">
           <div className="flex items-center">
@@ -379,42 +331,32 @@ export default function AdBanner() {
         </div>
       )}
 
-      {/* Video element (hidden when showing an image) */}
-      <video
-        ref={videoRef}
-        className={`w-full h-full object-contain ${isVideo ? 'block' : 'hidden'}`}
-        muted
-        playsInline
-        disablePictureInPicture
-        disableRemotePlayback
-        autoPlay
-        loop={isVideo && ads.length === 1}
-        onEnded={handleVideoEnded}
-        onError={handleVideoError}
-        onCanPlayThrough={handleVideoCanPlay}
-      />
-
-      {/* Image element (shown only for images) */}
-      {!isVideo && (
+      {isVideo ? (
+        <video
+          key={activeAdUrl}
+          ref={videoRef}
+          src={activeAdUrl}
+          className="w-full h-full object-contain block"
+          muted
+          playsInline
+          disablePictureInPicture
+          disableRemotePlayback
+          autoPlay
+          preload="auto"
+          loop={ads.length <= 1}
+          onEnded={handleVideoEnded}
+          onError={handleVideoError}
+        />
+      ) : (
         <img
+          key={activeAdUrl}
           ref={imageRef}
-          src={adSource}
+          src={activeAdUrl}
           alt={currentAd.title || "Ad"}
           className="w-full h-full object-contain"
           onError={handleImageError}
         />
       )}
-
-      {/* Preload indicator – shows if cached media isn't fully loaded yet */}
-      {cachedAd && !cachedAd.loaded && (
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-          <div className="flex flex-col items-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white mb-2"></div>
-            <div className="text-white text-sm">Buffering...</div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }

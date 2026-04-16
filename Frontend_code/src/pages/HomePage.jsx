@@ -300,14 +300,14 @@ const HomePage = () => {
       <BackgroundElements />
 
       {loadingFlight && <LoadingOverlay loadingFlight={loadingFlight} />}
-      <div className="h-[55vh] bg-black overflow-hidden">
+      <div className="h-[45vh] bg-black overflow-hidden">
         <AdBanner />
       </div>
 
       <Timmer />
 
       <div
-        className="h-[45vh] flex flex-col overflow-hidden"
+        className="h-[55vh] flex flex-col overflow-hidden"
         style={{
           backgroundColor: "var(--theme-cardBg)",
           color: "var(--theme-font)",
