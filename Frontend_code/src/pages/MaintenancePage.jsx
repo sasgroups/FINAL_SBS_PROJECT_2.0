@@ -406,7 +406,7 @@ export default function MaintenancePage() {
         ))}
       </div>
 {/* 🌎 Geospatial Heat Map */}
-<GeoHeatMap kioskLocations={kiosks} baggageRecords={filteredRecords} />
+{/* <GeoHeatMap kioskLocations={kiosks} baggageRecords={filteredRecords} /> */}
 
       {/* Chart */}
       <div className="bg-white rounded-2xl shadow-md p-5 mb-8">
