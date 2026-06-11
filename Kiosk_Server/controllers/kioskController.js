@@ -64,26 +64,41 @@ const updateKiosk = async (req, res) => {
   }
 };
 
-// Delete a kiosk
 const deleteKiosk = async (req, res) => {
-  try {
-    const { id } = req.params;
+  const { id } = req.params;
+  let connection;
 
-    await db.execute("DELETE FROM kiosks WHERE id=?", [id]);
-    res.json({ message: "Kiosk deleted successfully" });
+  try {
+    connection = await db.getConnection();   // db is your pool
+    await connection.beginTransaction();
+
+    // Delete tokens first (foreign key constraint)
+    await connection.execute('DELETE FROM kiosk_tokens WHERE kiosk_id = ?', [id]);
+
+    // Then delete the kiosk
+    const [result] = await connection.execute('DELETE FROM kiosks WHERE id = ?', [id]);
+
+    if (result.affectedRows === 0) {
+      await connection.rollback();
+      return res.status(404).json({ message: 'Kiosk not found' });
+    }
+
+    await connection.commit();
+    res.json({ message: 'Kiosk and its tokens deleted successfully' });
   } catch (err) {
-    console.error("❌ deleteKiosk error:", err);
-    res.status(500).json({ message: "Error deleting kiosk" });
+    if (connection) await connection.rollback();
+    console.error('❌ deleteKiosk error:', err);
+    res.status(500).json({ message: 'Failed to delete kiosk' });
+  } finally {
+    if (connection) connection.release();
   }
 };
-
-
 // List kiosks
 
 const listKiosks = async (req, res) => {
   try {
     const [rows] = await db.execute(
-      `SELECT id, name, connveyor_id, ip_address, created_at 
+      `SELECT id, name, conveyor_id, ip_address, created_at 
        FROM kiosks 
        ORDER BY created_at DESC`
     );

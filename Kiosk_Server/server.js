@@ -14,6 +14,7 @@ const flightRoutes = require('./routes/flightRoutes');
 const baggageRoutes = require("./routes/baggageRoutes");
 const kioskRoutes = require("./routes/kioskRoutes");
 const pageTimeoutRoutes = require('./routes/pageTimeoutRoutes');
+const fs = require('fs');  
 
 
 const app = express();
@@ -23,7 +24,9 @@ const io = new Server(server, { cors: { origin: "*" } });
 app.use(cors());
 app.use(express.json());
 app.use(fileUpload());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const uploadsDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+app.use('/uploads', express.static(uploadsDir));
 
 // Share Socket.IO instance with Express app routes
 app.set("io", io);

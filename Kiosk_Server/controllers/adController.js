@@ -33,10 +33,11 @@ exports.getAdsForKiosk = async (req, res) => {
     `, [kioskId]);
 
     if (include_metadata === 'true') {
-      // Add file metadata
+      // Add file metadata using writable external directory
       const adsWithMetadata = await Promise.all(
         ads.map(async (ad) => {
-          const filePath = path.join(__dirname, '../uploads/', ad.filename);
+          // FIXED: Use process.cwd() instead of __dirname
+          const filePath = path.join(process.cwd(), 'uploads', ad.filename);
           try {
             const stats = fs.statSync(filePath);
             const fileBuffer = fs.readFileSync(filePath);
@@ -167,9 +168,10 @@ exports.getAdsForSync = async (req, res) => {
       ads: []
     };
 
-    // Add file metadata and hash
+    // Add file metadata and hash using writable external directory
     for (const ad of ads) {
-      const filePath = path.join(__dirname, '../uploads/', ad.filename);
+      // FIXED: Use process.cwd() instead of __dirname
+      const filePath = path.join(process.cwd(), 'uploads', ad.filename);
       try {
         const stats = fs.statSync(filePath);
         const fileBuffer = fs.readFileSync(filePath);
@@ -221,7 +223,6 @@ exports.uploadAd = async (req, res) => {
       return res.status(400).json({ error: 'Invalid file type' });
     }
 
-    // Set file type
     const type = file.mimetype.startsWith('video') ? 'video' : 'image';
     
     // Generate unique filename
@@ -230,7 +231,15 @@ exports.uploadAd = async (req, res) => {
     const fileExtension = path.extname(file.name);
     const uniqueFilename = `${type}_${timestamp}_${randomString}${fileExtension}`;
     
-    const uploadPath = path.join(__dirname, '../uploads/', uniqueFilename);
+    // ---- FIX: Use writable external directory ----
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    const uploadPath = path.join(uploadsDir, uniqueFilename);
+    
+    // Ensure the directory exists
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    // ---------------------------------------------
 
     // Move the file
     await file.mv(uploadPath);
@@ -240,10 +249,9 @@ exports.uploadAd = async (req, res) => {
     const file_hash = crypto.createHash('md5').update(fileBuffer).digest('hex');
     const file_size = file.size;
 
-    // Parse kiosk_id (null for global ads)
     const parsedKioskId = kiosk_id && kiosk_id !== '' ? parseInt(kiosk_id) : null;
 
-    // Prevent duplicate ads based on identical file hash and target destination
+    // Prevent duplicate ads
     let duplicateQuery = 'SELECT id FROM ads WHERE file_hash = ? AND ';
     let dupParams = [file_hash];
     
@@ -257,20 +265,18 @@ exports.uploadAd = async (req, res) => {
     const [duplicate] = await db.execute(duplicateQuery, dupParams);
     
     if (duplicate.length > 0) {
-      fs.unlinkSync(uploadPath); // Clean up the redundant file
+      fs.unlinkSync(uploadPath);
       return res.status(409).json({ error: 'ALREADY AD EXISTS: This specific advertisement media is already uploaded for this target.' });
     }
 
-    // Check if kiosk exists (if kiosk-specific ad)
     if (parsedKioskId) {
       const [kiosk] = await db.execute('SELECT id FROM kiosks WHERE id = ?', [parsedKioskId]);
       if (kiosk.length === 0) {
-        fs.unlinkSync(uploadPath); // Clean up
+        fs.unlinkSync(uploadPath);
         return res.status(404).json({ error: 'Kiosk not found' });
       }
     }
 
-    // Insert into database
     const [result] = await db.execute(
       `INSERT INTO ads 
        (filename, type, kiosk_id, file_hash, file_size) 
@@ -278,9 +284,8 @@ exports.uploadAd = async (req, res) => {
       [uniqueFilename, type, parsedKioskId, file_hash, file_size]
     );
 
-    // Notify connected SSE clients directly without dependencies
+    // Notify SSE clients
     sseClients.forEach(client => {
-        // If it's a global ad or matching kiosk, send the refresh command
         if (!parsedKioskId || client.kioskId === String(parsedKioskId)) {
             client.res.write(`data: ${JSON.stringify({ event: 'ads_updated' })}\n\n`);
         }
@@ -329,7 +334,8 @@ exports.downloadAd = async (req, res) => {
       return res.status(403).json({ error: 'Ad not accessible to this kiosk' });
     }
 
-    const filePath = path.join(__dirname, '../uploads/', ad.filename);
+    // FIXED: Use process.cwd() instead of __dirname
+    const filePath = path.join(process.cwd(), 'uploads', ad.filename);
     
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: 'File not found' });
@@ -415,8 +421,9 @@ exports.deleteAd = async (req, res) => {
     // Delete from database
     await db.execute('DELETE FROM ads WHERE id = ?', [id]);
     
-    // Delete file
-    const filePath = path.join(__dirname, '../uploads/', ad[0].filename);
+    // Delete file from writable external directory
+    // FIXED: Use process.cwd() instead of __dirname
+    const filePath = path.join(process.cwd(), 'uploads', ad[0].filename);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
