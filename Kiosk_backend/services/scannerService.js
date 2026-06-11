@@ -1,10 +1,7 @@
 // services/scannerService.js
 const { SerialPort } = require("serialport");
 
-let getFlightDetails;
-(async () => {
-  ({ getFlightDetails } = await import("./flightInfoService.js"));
-})();
+const { getFlightDetails } = require("./flightInfoService.js");
 
 let ioInstance = null;
 let currentPort = null;

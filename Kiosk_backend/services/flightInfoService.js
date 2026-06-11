@@ -2,8 +2,6 @@
 const AIRLINES_API_KEY = "TMnd1Mr0FBG0f97NMROpCg==PLsvH3rLoVsyByxh";
 
 async function getFlightDetails(scanCode) {
-  const fetch = (await import("node-fetch")).default;
-
   try {
     console.log(`📦 Barcode scanned: ${scanCode}`);
 
@@ -38,9 +36,7 @@ async function getFlightDetails(scanCode) {
       }
     }
 
-    console.log(
-      `🔎 Parsed: Origin=${origin}, Destination=${destination}, AirlineCode=${airlineCode}`
-    );
+    console.log(`🔎 Parsed: Origin=${origin}, Destination=${destination}, AirlineCode=${airlineCode}`);
 
     let airlineName = "Unknown Airline";
     if (airlineCode) {
@@ -50,10 +46,9 @@ async function getFlightDetails(scanCode) {
           { headers: { "X-Api-Key": AIRLINES_API_KEY } }
         );
         const airlineData = await airlineRes.json();
-        airlineName =
-          airlineData.length > 0 ? airlineData[0].name : "Unknown Airline";
-      } catch {
-        console.warn(`⚠️ Failed to fetch airline info for ${airlineCode}`);
+        airlineName = airlineData.length > 0 ? airlineData[0].name : "Unknown Airline";
+      } catch (err) {
+        console.warn(`⚠️ Failed to fetch airline info for ${airlineCode}: ${err.message}`);
       }
     }
 
@@ -66,8 +61,8 @@ async function getFlightDetails(scanCode) {
         );
         const data = await res.json();
         return data.length > 0 ? data[0] : { iata, country: "Unknown" };
-      } catch {
-        console.warn(`⚠️ Failed to fetch airport info for ${iata}`);
+      } catch (err) {
+        console.warn(`⚠️ Failed to fetch airport info for ${iata}: ${err.message}`);
         return { iata, country: "Unknown" };
       }
     }
@@ -83,13 +78,12 @@ async function getFlightDetails(scanCode) {
         : "International";
 
     console.log(`✈ Airline: ${airlineName}`);
-    console.log(
-      `🌍 ${origin} (${originData.country}) → ${destination} (${destData.country}) = ${flightType}`
-    );
+    console.log(`🌍 ${origin} (${originData.country}) → ${destination} (${destData.country}) = ${flightType}`);
 
     return { origin, destination, airlineName, flightType };
   } catch (error) {
-    console.error("❌ Error fetching flight details:", error.message);
+    console.error("❌ Error in getFlightDetails:", error.message);
+    // Return a fallback object instead of throwing, so scanner doesn't crash
     return {
       origin: "UNK",
       destination: "UNK",
@@ -100,5 +94,3 @@ async function getFlightDetails(scanCode) {
 }
 
 module.exports = { getFlightDetails };
-
-
