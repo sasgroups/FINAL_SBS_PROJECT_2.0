@@ -14,9 +14,6 @@ import {
   Eye,
   Scale,
   Package,
-  Globe,
-  Home,
-  ChevronRight,
   AlertCircle,
   Calendar,
   Hash,
@@ -31,11 +28,9 @@ const Flights = () => {
   const [filteredFlights, setFilteredFlights] = useState([]);
   const [formData, setFormData] = useState({
     airline: '',
-    flight_number: '',
-    max_weight_domestic: '',
-    max_volume_domestic: '',
-    max_weight_international: '',
-    max_volume_international: ''
+    flight_code: '',
+    max_weight: '',
+    dimension: ''
   });
   const [editId, setEditId] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -64,32 +59,21 @@ const Flights = () => {
     fetchFlights();
   }, []);
 
-  // Filter flights based on search and filter
+  // Filter flights based on search input
   useEffect(() => {
     let result = flights;
 
-    // Apply search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       result = result.filter(flight =>
         flight.airline?.toLowerCase().includes(term) ||
+        flight.flight_code?.toLowerCase().includes(term) ||
         flight.flight_number?.toLowerCase().includes(term)
       );
     }
 
-    // Apply type filter
-    if (activeFilter === 'domestic') {
-      result = result.filter(flight => 
-        flight.max_weight_domestic || flight.max_volume_domestic
-      );
-    } else if (activeFilter === 'international') {
-      result = result.filter(flight => 
-        flight.max_weight_international || flight.max_volume_international
-      );
-    }
-
     setFilteredFlights(result);
-  }, [searchTerm, activeFilter, flights]);
+  }, [searchTerm, flights]);
 
   const showMessage = (text, type, duration = 3000) => {
     setMessage({ text, type });
@@ -113,6 +97,18 @@ const Flights = () => {
       showMessage('Airline name is required', 'error');
       return;
     }
+    if (!formData.flight_code.trim()) {
+      showMessage('Flight code is required', 'error');
+      return;
+    }
+    if (!formData.max_weight || Number.isNaN(Number(formData.max_weight))) {
+      showMessage('Max weight is required', 'error');
+      return;
+    }
+    if (!formData.dimension || Number.isNaN(Number(formData.dimension))) {
+      showMessage('Dimension is required', 'error');
+      return;
+    }
 
     try {
       if (editId) {
@@ -134,11 +130,9 @@ const Flights = () => {
   const handleEdit = (flight) => {
     setFormData({
       airline: flight.airline || '',
-      flight_number: flight.flight_number || '',
-      max_weight_domestic: flight.max_weight_domestic || '',
-      max_volume_domestic: flight.max_volume_domestic || '',
-      max_weight_international: flight.max_weight_international || '',
-      max_volume_international: flight.max_volume_international || ''
+      flight_code: flight.flight_code || flight.flight_number || '',
+      max_weight: flight.max_weight_domestic || flight.max_weight_international || '',
+      dimension: flight.max_volume_domestic || flight.max_volume_international || ''
     });
     setEditId(flight.id);
     setShowModal(true);
@@ -159,11 +153,9 @@ const Flights = () => {
   const resetForm = () => {
     setFormData({
       airline: '',
-      flight_number: '',
-      max_weight_domestic: '',
-      max_volume_domestic: '',
-      max_weight_international: '',
-      max_volume_international: ''
+      flight_code: '',
+      max_weight: '',
+      dimension: ''
     });
     setEditId(null);
     setShowModal(false);
@@ -171,10 +163,11 @@ const Flights = () => {
 
   const getFlightStats = () => {
     const total = flights.length;
-    const domestic = flights.filter(f => f.max_weight_domestic || f.max_volume_domestic).length;
-    const international = flights.filter(f => f.max_weight_international || f.max_volume_international).length;
-    
-    return { total, domestic, international };
+    const configured = flights.filter(f => 
+      f.max_weight_domestic || f.max_weight_international
+    ).length;
+
+    return { total, configured };
   };
 
   const stats = getFlightStats();
@@ -236,7 +229,7 @@ const Flights = () => {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
               <div className="flex items-center justify-between">
                 <div>
@@ -252,23 +245,11 @@ const Flights = () => {
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Domestic Config</p>
-                  <p className="text-3xl font-bold text-slate-900 mt-2">{stats.domestic}</p>
+                  <p className="text-sm font-medium text-slate-600">Configured Flights</p>
+                  <p className="text-3xl font-bold text-slate-900 mt-2">{stats.configured}</p>
                 </div>
                 <div className="p-3 bg-green-50 rounded-xl">
-                  <Home className="w-6 h-6 text-green-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-600">International Config</p>
-                  <p className="text-3xl font-bold text-slate-900 mt-2">{stats.international}</p>
-                </div>
-                <div className="p-3 bg-purple-50 rounded-xl">
-                  <Globe className="w-6 h-6 text-purple-600" />
+                  <CheckCircle className="w-6 h-6 text-green-600" />
                 </div>
               </div>
             </div>
@@ -281,7 +262,7 @@ const Flights = () => {
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search airlines or flight numbers..."
+                  placeholder="Search airlines or flight codes..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-12 pr-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -290,25 +271,16 @@ const Flights = () => {
               
               <div className="flex gap-2">
                 <div className="flex bg-slate-100 p-1 rounded-xl">
-                  {[
-                    { key: 'all', label: 'All', icon: Plane },
-                    { key: 'domestic', label: 'Domestic', icon: Home },
-                    { key: 'international', label: 'International', icon: Globe }
-                  ].map(({ key, label, icon: Icon }) => (
                     <button
-                      key={key}
-                      onClick={() => setActiveFilter(key)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${activeFilter === key
+                      onClick={() => setActiveFilter('all')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${activeFilter === 'all'
                         ? 'bg-white shadow-sm text-blue-600'
                         : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      <Icon className="w-4 h-4" />
-                      <span className="hidden sm:inline">{label}</span>
+                      <Plane className="w-4 h-4" />
+                      <span className="hidden sm:inline">All</span>
                     </button>
-                  ))}
-                </div>
-                
                 <button className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors">
                   <Download className="w-4 h-4" />
                   <span className="hidden sm:inline">Export</span>
@@ -359,19 +331,19 @@ const Flights = () => {
                   <th className="py-4 px-6 text-left">
                     <div className="flex items-center gap-2">
                       <Hash className="w-4 h-4 text-slate-500" />
-                      <span className="font-semibold text-slate-700">Flight No.</span>
+                      <span className="font-semibold text-slate-700">Flight Code</span>
                     </div>
                   </th>
                   <th className="py-4 px-6 text-left">
                     <div className="flex items-center gap-2">
-                      <Home className="w-4 h-4 text-slate-500" />
-                      <span className="font-semibold text-slate-700">Domestic</span>
+                      <Scale className="w-4 h-4 text-slate-500" />
+                      <span className="font-semibold text-slate-700">Weight</span>
                     </div>
                   </th>
                   <th className="py-4 px-6 text-left">
                     <div className="flex items-center gap-2">
-                      <Globe className="w-4 h-4 text-slate-500" />
-                      <span className="font-semibold text-slate-700">International</span>
+                      <Package className="w-4 h-4 text-slate-500" />
+                      <span className="font-semibold text-slate-700">Dimension</span>
                     </div>
                   </th>
                   <th className="py-4 px-6 text-left">
@@ -382,7 +354,7 @@ const Flights = () => {
               <tbody className="divide-y divide-slate-200">
                 {filteredFlights.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="py-12 text-center">
+                    <td colSpan="4" className="py-12 text-center">
                       <div className="flex flex-col items-center justify-center">
                         <div className="p-4 bg-slate-100 rounded-2xl mb-4">
                           <Plane className="w-12 h-12 text-slate-400" />
@@ -427,22 +399,16 @@ const Flights = () => {
                         <div className="inline-flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-lg">
                           <Hash className="w-4 h-4 text-slate-500" />
                           <span className="font-mono font-medium text-slate-700">
-                            {flight.flight_number || 'N/A'}
+                            {flight.flight_code || flight.flight_number || 'N/A'}
                           </span>
                         </div>
                       </td>
                       <td className="py-4 px-6">
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <Scale className="w-4 h-4 text-green-600" />
+                            <Scale className="w-4 h-4 text-slate-600" />
                             <span className="text-sm text-slate-700">
-                              Wt: {flight.max_weight_domestic || 'N/A'}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Package className="w-4 h-4 text-green-600" />
-                            <span className="text-sm text-slate-700">
-                              Vol: {flight.max_volume_domestic || 'N/A'}
+                              {flight.max_weight_domestic || flight.max_weight_international || 'N/A'} kg
                             </span>
                           </div>
                         </div>
@@ -450,15 +416,9 @@ const Flights = () => {
                       <td className="py-4 px-6">
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <Scale className="w-4 h-4 text-purple-600" />
+                            <Package className="w-4 h-4 text-slate-600" />
                             <span className="text-sm text-slate-700">
-                              Wt: {flight.max_weight_international || 'N/A'}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Package className="w-4 h-4 text-purple-600" />
-                            <span className="text-sm text-slate-700">
-                              Vol: {flight.max_volume_international || 'N/A'}
+                              {flight.max_volume_domestic || flight.max_volume_international || 'N/A'}
                             </span>
                           </div>
                         </div>
@@ -501,16 +461,6 @@ const Flights = () => {
             Showing <span className="font-semibold text-slate-900">{filteredFlights.length}</span> of{' '}
             <span className="font-semibold text-slate-900">{flights.length}</span> airlines
           </p>
-          <div className="flex items-center gap-4 mt-2 sm:mt-0">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span>Domestic</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-              <span>International</span>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -582,11 +532,11 @@ const Flights = () => {
 
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">
-                          Flight Number
+                          Flight Code
                         </label>
                         <input
-                          name="flight_number"
-                          value={formData.flight_number}
+                          name="flight_code"
+                          value={formData.flight_code}
                           onChange={handleChange}
                           placeholder="e.g., AA123"
                           className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -594,22 +544,22 @@ const Flights = () => {
                       </div>
                     </div>
 
-                    {/* Domestic Capacity */}
+                    {/* Capacity */}
                     <div className="space-y-6">
                       <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                        <Home className="w-5 h-5 text-green-600" />
-                        Domestic Capacity
+                        <Scale className="w-5 h-5 text-green-600" />
+                        Capacity
                       </h3>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">
-                          Max Weight (Domestic)
+                          Max Weight
                         </label>
                         <div className="relative">
                           <input
-                            name="max_weight_domestic"
+                            name="max_weight"
                             type="number"
-                            value={formData.max_weight_domestic}
+                            value={formData.max_weight}
                             onChange={handleChange}
                             placeholder="e.g., 500"
                             className="w-full px-4 py-3 pl-12 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -622,15 +572,15 @@ const Flights = () => {
 
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">
-                          Max Volume (Domestic)
+                          Dimension
                         </label>
                         <div className="relative">
                           <input
-                            name="max_volume_domestic"
+                            name="dimension"
                             type="number"
-                            value={formData.max_volume_domestic}
+                            value={formData.dimension}
                             onChange={handleChange}
-                            placeholder="e.g., 10"
+                            placeholder="e.g., 150"
                             className="w-full px-4 py-3 pl-12 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           />
                           <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400">
@@ -638,52 +588,7 @@ const Flights = () => {
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* International Capacity */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                        <Globe className="w-5 h-5 text-purple-600" />
-                        International Capacity
-                      </h3>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                          Max Weight (International)
-                        </label>
-                        <div className="relative">
-                          <input
-                            name="max_weight_international"
-                            type="number"
-                            value={formData.max_weight_international}
-                            onChange={handleChange}
-                            placeholder="e.g., 300"
-                            className="w-full px-4 py-3 pl-12 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                          <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400">
-                            <Scale className="w-5 h-5" />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                          Max Volume (International)
-                        </label>
-                        <div className="relative">
-                          <input
-                            name="max_volume_international"
-                            type="number"
-                            value={formData.max_volume_international}
-                            onChange={handleChange}
-                            placeholder="e.g., 6"
-                            className="w-full px-4 py-3 pl-12 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                          <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400">
-                            <Package className="w-5 h-5" />
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   </div>
 
@@ -766,6 +671,7 @@ const Flights = () => {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
     </div>
   );
 };

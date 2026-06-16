@@ -74,7 +74,7 @@ export default function BaggageCheckPage() {
   const [noBagTimeout, setNoBagTimeout] = useState(false);
   const [weightStable, setWeightStable] = useState(false);
   const [hardwareError, setHardwareError] = useState(false);
-  const { airline = "", flightType = "", origin, destination } = baggageData;
+  const { airline = "", origin, destination } = baggageData;
 
 
 
@@ -116,7 +116,6 @@ export default function BaggageCheckPage() {
 
     const payload = {
       airline,
-      flightType,
       origin,
       destination,
       weight: currentWeight,
@@ -158,7 +157,13 @@ export default function BaggageCheckPage() {
       const abortController = new AbortController();
       const timeoutId = setTimeout(() => abortController.abort(), 900); // Prevent overlapping 1s intervals
       try {
-        const res = await fetch(`${API_URL2}/api/weight?t=${Date.now()}`, { signal: abortController.signal });
+        const res = await fetch(`${API_URL2}/api/weight?t=${Date.now()}`, {
+          signal: abortController.signal,
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        });
         clearTimeout(timeoutId);
         if (!res.ok) throw new Error("Fetch failed");
         
@@ -203,7 +208,13 @@ export default function BaggageCheckPage() {
       const abortController = new AbortController();
       const timeoutIdFetch = setTimeout(() => abortController.abort(), 4500);
       try {
-        const res = await fetch(`${API_URL3}/api/detection?t=${Date.now()}`, { signal: abortController.signal });
+        const res = await fetch(`${API_URL3}/api/detection`, {
+          signal: abortController.signal,
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        });
         clearTimeout(timeoutIdFetch);
         if (!res.ok) throw new Error("Fetch failed");
         const data = await res.json();
@@ -253,7 +264,7 @@ export default function BaggageCheckPage() {
       
       setIsLoadingLimits(true);
       try {
-        if (airline && flightType) {
+        if (airline) {
           const cacheBust = Math.floor(Date.now() / 300000); // 5 min cache
           const res = await fetch(`${API_URL}/api/flights?t=${cacheBust}`);
           if (!res.ok) throw new Error("Failed to fetch");
@@ -262,8 +273,8 @@ export default function BaggageCheckPage() {
           const match = data.find((f) => f.airline === airline);
           if (match) {
             setLimits({
-              maxWeight: flightType === "Domestic" ? match.max_weight_domestic : match.max_weight_international,
-              maxVolume: flightType === "Domestic" ? match.max_volume_domestic : match.max_volume_international,
+              maxWeight: match.max_weight_domestic || match.max_weight_international,
+              maxVolume: match.max_volume_domestic || match.max_volume_international,
             });
           } else {
             setLimits({ maxWeight: null, maxVolume: null });
@@ -279,13 +290,47 @@ export default function BaggageCheckPage() {
     };
 
     fetchLimits();
-  }, [airline, flightType, baggageData]);
+  }, [airline, baggageData]);
 
   const weightLimit = parseFloat(limits.maxWeight) || 0;
   const volumeLimit = parseFloat(limits.maxVolume) || 0;
 
   const weightStatus = getWeightStatus(currentWeight, weightLimit);
   const volumeStatus = getVolumeStatus(volume, volumeLimit);
+
+  const checkInRequired =
+    (weightStatus === 'yellow' || weightStatus === 'red') ||
+    (volumeStatus === 'yellow' || volumeStatus === 'red');
+
+  const baggageRecommendation = (() => {
+    if (currentWeight <= 0.1 || volume === 0 || !objectDetected) {
+      return {
+        title: t('Awaiting measurement') || 'Awaiting measurement',
+        description:
+          t('Place your baggage on the scale to check whether it qualifies as cabin baggage or requires check-in.') ||
+          'Place your baggage on the scale to check whether it qualifies as cabin baggage or requires check-in.',
+        tone: 'info',
+      };
+    }
+
+    if (!checkInRequired) {
+      return {
+        title: t('Cabin baggage OK') || 'Cabin baggage OK',
+        description:
+          t('Your bag is within the allowed weight and size limits for cabin baggage. Keep it with you onboard.') ||
+          'Your bag is within the allowed weight and size limits for cabin baggage. Keep it with you onboard.',
+        tone: 'success',
+      };
+    }
+
+    return {
+      title: t('Check-in baggage required') || 'Check-in baggage required',
+      description:
+        t('Your bag exceeds the cabin weight or size limit. Please use check-in baggage at the counter.') ||
+        'Your bag exceeds the cabin weight or size limit. Please use check-in baggage at the counter.',
+      tone: 'warning',
+    };
+  })();
 
   const statusColors = {
     gray: {
@@ -463,8 +508,6 @@ export default function BaggageCheckPage() {
                     }}
                   >
                     <span style={{ color: "var(--theme-font)" }}>✈️ {airline}</span>
-                    <span style={{ color: "var(--theme-font)", opacity: 0.6 }}>•</span>
-                    <span style={{ color: "var(--theme-font)" }}>{flightType}</span>
                     <span style={{ color: "var(--theme-font)", opacity: 0.6 }}>•</span>
                     <span style={{ color: "var(--theme-font)" }}>
                       {origin} → {destination}
@@ -648,6 +691,49 @@ export default function BaggageCheckPage() {
                   <span className="text-sm" style={{ color: "var(--theme-font)", opacity: 0.6 }}>
                     cm
                   </span>
+                </div>
+              </div>
+              <div
+                className="mt-6 rounded-3xl p-6 border shadow-sm"
+                style={{
+                  backgroundColor:
+                    baggageRecommendation.tone === 'success'
+                      ? 'rgba(16, 185, 129, 0.08)'
+                      : baggageRecommendation.tone === 'warning'
+                      ? 'rgba(245, 158, 11, 0.1)'
+                      : 'rgba(148, 163, 184, 0.08)',
+                  border: `1px solid ${
+                    baggageRecommendation.tone === 'success'
+                      ? 'rgba(16, 185, 129, 0.25)'
+                      : baggageRecommendation.tone === 'warning'
+                      ? 'rgba(245, 158, 11, 0.3)'
+                      : 'rgba(148, 163, 184, 0.3)'
+                  }`,
+                }}
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-lg font-semibold" style={{ color: 'var(--theme-font)' }}>
+                      {baggageRecommendation.title}
+                    </p>
+                    <p className="mt-2 text-sm leading-6" style={{ color: 'var(--theme-font)', opacity: 0.85 }}>
+                      {baggageRecommendation.description}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm font-semibold" style={{ color: 'var(--theme-font)', opacity: 0.85 }}>
+                    <span>
+                      {baggageRecommendation.tone === 'success'
+                        ? '✅'
+                        : baggageRecommendation.tone === 'warning'
+                        ? '⚠️'
+                        : 'ℹ️'}
+                    </span>
+                    <span>
+                      {checkInRequired
+                        ? t('Please take this bag to check-in.') || 'Please take this bag to check-in.'
+                        : t('This bag is okay for cabin baggage.') || 'This bag is okay for cabin baggage.'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </>

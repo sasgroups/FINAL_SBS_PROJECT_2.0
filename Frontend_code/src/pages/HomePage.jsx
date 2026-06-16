@@ -27,7 +27,6 @@ const HomePage = () => {
   const [flights, setFlights] = useState([]);
 
   const [selectedAirline, setSelectedAirline] = useState("");
-  const [selectedFlightType, setSelectedFlightType] = useState("");
   const [loadingFlight, setLoadingFlight] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [barcodeDetected, setBarcodeDetected] = useState(false);
@@ -195,18 +194,12 @@ const HomePage = () => {
   };
 
   const createBaggageData = (flight, details) => {
-    const maxWeight = details.flightType === "Domestic"
-      ? flight.max_weight_domestic
-      : flight.max_weight_international;
-
-    const maxVolume = details.flightType === "Domestic"
-      ? flight.max_volume_domestic
-      : flight.max_volume_international;
+    const maxWeight = flight.max_weight_domestic || flight.max_weight_international;
+    const maxVolume = flight.max_volume_domestic || flight.max_volume_international;
 
     return {
       airline: flight.airline,
       airlineLogo: flight.logo,
-      flightType: details.flightType,
       origin: details.origin,
       destination: details.destination,
       flightNumber: details.flightNumber,
@@ -255,13 +248,8 @@ const HomePage = () => {
   const createManualBaggageData = (match) => ({
     airline: match.airline,
     airlineLogo: match.logo,
-    flightType: selectedFlightType?.toLowerCase(),
-    maxWeight: selectedFlightType?.toLowerCase() === 'domestic'
-      ? match.max_weight_domestic
-      : match.max_weight_international,
-    maxVolume: selectedFlightType?.toLowerCase() === 'domestic'
-      ? match.max_volume_domestic
-      : match.max_volume_international,
+    maxWeight: match.max_weight_domestic || match.max_weight_international,
+    maxVolume: match.max_volume_domestic || match.max_volume_international,
     flightNumber: "---",
     passengerName: "Manual Entry",
   });
@@ -355,8 +343,6 @@ const HomePage = () => {
                   flights={flights}
                   selectedAirline={selectedAirline}
                   setSelectedAirline={setSelectedAirline}
-                  selectedFlightType={selectedFlightType}
-                  setSelectedFlightType={setSelectedFlightType}
                   onManualEntry={handleManualEntry}
                   t={t}
                 />

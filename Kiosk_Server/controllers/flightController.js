@@ -17,20 +17,33 @@ exports.createFlight = async (req, res) => {
   try {
     const {
       airline,
+      flight_code,
       flight_number,
-      max_weight_domestic,
-      max_volume_domestic,
-      max_weight_international,
-      max_volume_international
+      max_weight,
+      dimension,
     } = req.body;
+
+    const normalizeNumber = (value) => {
+      if (value === undefined || value === null || value === "") return null;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const codeValue = flight_code || flight_number;
+    const weightValue = normalizeNumber(max_weight);
+    const dimensionValue = normalizeNumber(dimension);
+
+    if (!airline || !codeValue || weightValue === null || dimensionValue === null) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
 
     const newFlight = {
       airline,
-      flight_number,
-      max_weight_domestic,
-      max_volume_domestic,
-      max_weight_international,
-      max_volume_international
+      flight_number: codeValue,
+      max_weight_domestic: weightValue,
+      max_weight_international: weightValue,
+      max_volume_domestic: dimensionValue,
+      max_volume_international: dimensionValue,
     };
 
     await flightModel.createFlight(newFlight);
@@ -59,15 +72,11 @@ exports.getFlightByNumber = async (req, res) => {
 
     const flight = rows[0];
 
-    const baggageLimit = (flight.flight_type === 'International')
-      ? {
-          maxWeight: flight.max_weight_international,
-          maxVolume: flight.max_volume_international,
-        }
-      : {
-          maxWeight: flight.max_weight_domestic,
-          maxVolume: flight.max_volume_domestic,
-        };
+    const baggageLimit = {
+      maxWeight: flight.max_weight_domestic || flight.max_weight_international,
+      maxVolume: flight.max_volume_domestic || flight.max_volume_international,
+      maxDimension: flight.max_volume_domestic || flight.max_volume_international,
+    };
 
     res.json({
       id: flight.id,
@@ -105,9 +114,41 @@ exports.deleteFlight = async (req, res) => {
 // Update flight by ID
 exports.updateFlight = async (req, res) => {
   const { id } = req.params;
-  const updateData = req.body;
+  const {
+    airline,
+    flight_code,
+    flight_number,
+    max_weight,
+    dimension,
+  } = req.body;
 
   try {
+    const normalizeNumber = (value) => {
+      if (value === undefined || value === null || value === "") return null;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const codeValue = flight_code || flight_number;
+    const weightValue = normalizeNumber(max_weight);
+    const dimensionValue = normalizeNumber(dimension);
+
+    const updateData = {};
+    if (airline !== undefined) updateData.airline = airline;
+    if (codeValue !== undefined) updateData.flight_number = codeValue;
+    if (weightValue !== null) {
+      updateData.max_weight_domestic = weightValue;
+      updateData.max_weight_international = weightValue;
+    }
+    if (dimensionValue !== null) {
+      updateData.max_volume_domestic = dimensionValue;
+      updateData.max_volume_international = dimensionValue;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ message: 'No valid update fields provided' });
+    }
+
     const fields = Object.keys(updateData)
       .map(key => `${key} = ?`)
       .join(', ');
@@ -131,7 +172,15 @@ exports.updateFlight = async (req, res) => {
 exports.getFlightsByAirline = async (req, res) => {
   const { airline } = req.params;
   try {
-    const [flights] = await db.execute('SELECT * FROM flights WHERE airline = ?', [airline]);
+    const [flights] = await db.execute(
+      `SELECT id, airline, flight_number AS flight_code,
+              max_weight_domestic, max_volume_domestic,
+              max_weight_international, max_volume_international,
+              created_at
+       FROM flights
+       WHERE airline = ?`,
+      [airline]
+    );
     res.json(flights);
   } catch (error) {
     console.error('Error fetching flights by airline:', error);

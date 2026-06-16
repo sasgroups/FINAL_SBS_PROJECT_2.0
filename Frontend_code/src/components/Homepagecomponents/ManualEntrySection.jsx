@@ -4,8 +4,6 @@ const ManualEntrySection = ({
   flights,
   selectedAirline,
   setSelectedAirline,
-  selectedFlightType,
-  setSelectedFlightType,
   onManualEntry,
   t,
 }) => {
@@ -63,7 +61,7 @@ const ManualEntrySection = ({
     setDropdownOpen(false);
   };
 
-  const isReady = selectedAirline && selectedFlightType;
+  const isReady = Boolean(selectedAirline);
 
   return (
     <div
@@ -277,59 +275,6 @@ const ManualEntrySection = ({
             </div>
           </div>
 
-          {/* Flight Type */}
-          <div className="flex flex-col gap-2">
-            <label className="text-[13px] font-bold uppercase tracking-widest text-white flex items-center gap-2 pl-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-white opacity-70" />
-              {t("flightType")}
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { value: "domestic",      icon: "🏠", labelKey: "domestic",      descKey: "domesticDesc" },
-                { value: "international", icon: "🌎", labelKey: "international", descKey: "internationalDesc" },
-              ].map((type) => {
-                const active = selectedFlightType === type.value;
-                return (
-                  <button
-                    key={type.value}
-                    onClick={() => setSelectedFlightType(type.value)}
-                    className="relative p-4 rounded-2xl border transition-all duration-200 flex flex-col items-center justify-center gap-1.5"
-                    style={{
-                      borderColor: active
-                        ? "var(--theme-font)"
-                        : "var(--theme-border)",
-                      background: active
-                        ? "var(--theme-bg)"
-                        : "rgba(255,255,255,0.03)",
-                      boxShadow: active
-                        ? "0 0 8px rgba(255,255,255,0.15)"
-                        : "none",
-                    }}
-                  >
-                    <span className="text-3xl">{type.icon}</span>
-                    <div className="text-center">
-                      <span
-                        className="block font-bold text-sm"
-                        style={{
-                          color: "var(--theme-font)",
-                          opacity: active ? 1 : 0.75,
-                        }}
-                      >
-                        {t(type.labelKey)}
-                      </span>
-                      <span
-                        className="text-xs block mt-0.5"
-                        style={{ color: "rgba(255,255,255,0.35)" }}
-                      >
-                        {t(type.descKey)}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Continue Button */}
           <div className="flex items-center justify-center width-full">
             <button
@@ -385,7 +330,7 @@ const ManualEntrySection = ({
                       d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7z"
                     />
                   </svg>
-                  <span>{t("selectAirlineAndType")}</span>
+                  <span>{t("selectAirline")}</span>
                 </>
               )}
             </button>
