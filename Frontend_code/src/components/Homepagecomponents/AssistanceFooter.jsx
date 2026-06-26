@@ -6,16 +6,19 @@ const AssistanceFooter = () => {
 
   return (
     <div
-      className="mt-8 pt-6"
-      style={{ borderTop: `1px solid var(--theme-border)` }}
+      className="mt-6 pt-5 pb-8 px-1"
+      style={{
+        borderTop: `1px solid var(--theme-border)`,
+        background: "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))",
+      }}
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Assistance */}
         <div
           className="flex items-center gap-3 p-4 rounded-lg backdrop-blur-sm"
           style={{
-            backgroundColor: "rgba(0, 0, 0, 0.05)", // fallback – we'll use theme with opacity
-            border: `1px solid var(--theme-border)`,
+            backgroundColor: "rgba(255, 255, 255, 0.06)",
+            border: `1px solid rgba(255,255,255,0.08)`,
           }}
         >
           <div
@@ -58,8 +61,8 @@ const AssistanceFooter = () => {
         <div
           className="flex items-center justify-center gap-3 p-4 rounded-lg backdrop-blur-sm"
           style={{
-            backgroundColor: "rgba(0, 0, 0, 0.05)",
-            border: `1px solid var(--theme-border)`,
+            background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
+            border: `1px solid rgba(255,255,255,0.1)`,
           }}
         >
           <div className="flex items-center gap-2">
@@ -110,8 +113,8 @@ const AssistanceFooter = () => {
         <div
           className="flex items-center justify-center p-4 rounded-lg backdrop-blur-sm"
           style={{
-            backgroundColor: "rgba(0, 0, 0, 0.05)",
-            border: `1px solid var(--theme-border)`,
+            background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))",
+            border: `1px solid rgba(255,255,255,0.1)`,
           }}
         >
           <div className="text-center">

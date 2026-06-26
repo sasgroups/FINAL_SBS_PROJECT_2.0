@@ -382,7 +382,7 @@ export default function AdBanner() {
       {/* Video element (hidden when showing an image) */}
       <video
         ref={videoRef}
-        className={`w-full h-full object-contain ${isVideo ? 'block' : 'hidden'}`}
+        className={`w-full h-full object-cover object-center ${isVideo ? 'block' : 'hidden'}`}
         muted
         playsInline
         disablePictureInPicture
@@ -400,7 +400,7 @@ export default function AdBanner() {
           ref={imageRef}
           src={adSource}
           alt={currentAd.title || "Ad"}
-          className="w-full h-full object-contain"
+          className="w-full h-full object-cover object-center"
           onError={handleImageError}
         />
       )}

@@ -30,7 +30,7 @@ const Flights = () => {
     airline: '',
     flight_code: '',
     max_weight: '',
-    dimension: ''
+    volume: ''
   });
   const [editId, setEditId] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -105,8 +105,8 @@ const Flights = () => {
       showMessage('Max weight is required', 'error');
       return;
     }
-    if (!formData.dimension || Number.isNaN(Number(formData.dimension))) {
-      showMessage('Dimension is required', 'error');
+    if (!formData.volume || Number.isNaN(Number(formData.volume))) {
+      showMessage('Volume is required', 'error');
       return;
     }
 
@@ -131,8 +131,8 @@ const Flights = () => {
     setFormData({
       airline: flight.airline || '',
       flight_code: flight.flight_code || flight.flight_number || '',
-      max_weight: flight.max_weight_domestic || flight.max_weight_international || '',
-      dimension: flight.max_volume_domestic || flight.max_volume_international || ''
+      max_weight: flight.max_weight || '',
+      volume: flight.max_volume || ''
     });
     setEditId(flight.id);
     setShowModal(true);
@@ -155,7 +155,7 @@ const Flights = () => {
       airline: '',
       flight_code: '',
       max_weight: '',
-      dimension: ''
+      volume: ''
     });
     setEditId(null);
     setShowModal(false);
@@ -164,7 +164,7 @@ const Flights = () => {
   const getFlightStats = () => {
     const total = flights.length;
     const configured = flights.filter(f => 
-      f.max_weight_domestic || f.max_weight_international
+      f.max_weight || f.max_volume
     ).length;
 
     return { total, configured };
@@ -343,7 +343,7 @@ const Flights = () => {
                   <th className="py-4 px-6 text-left">
                     <div className="flex items-center gap-2">
                       <Package className="w-4 h-4 text-slate-500" />
-                      <span className="font-semibold text-slate-700">Dimension</span>
+                      <span className="font-semibold text-slate-700">Volume</span>
                     </div>
                   </th>
                   <th className="py-4 px-6 text-left">
@@ -408,7 +408,7 @@ const Flights = () => {
                           <div className="flex items-center gap-2">
                             <Scale className="w-4 h-4 text-slate-600" />
                             <span className="text-sm text-slate-700">
-                              {flight.max_weight_domestic || flight.max_weight_international || 'N/A'} kg
+                              {flight.max_weight || 'N/A'} kg
                             </span>
                           </div>
                         </div>
@@ -418,7 +418,7 @@ const Flights = () => {
                           <div className="flex items-center gap-2">
                             <Package className="w-4 h-4 text-slate-600" />
                             <span className="text-sm text-slate-700">
-                              {flight.max_volume_domestic || flight.max_volume_international || 'N/A'}
+                              {flight.max_volume || 'N/A'}
                             </span>
                           </div>
                         </div>
@@ -572,13 +572,13 @@ const Flights = () => {
 
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">
-                          Dimension
+                          Volume
                         </label>
                         <div className="relative">
                           <input
-                            name="dimension"
+                            name="volume"
                             type="number"
-                            value={formData.dimension}
+                            value={formData.volume}
                             onChange={handleChange}
                             placeholder="e.g., 150"
                             className="w-full px-4 py-3 pl-12 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"

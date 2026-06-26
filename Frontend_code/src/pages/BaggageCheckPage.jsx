@@ -273,8 +273,8 @@ export default function BaggageCheckPage() {
           const match = data.find((f) => f.airline === airline);
           if (match) {
             setLimits({
-              maxWeight: match.max_weight_domestic || match.max_weight_international,
-              maxVolume: match.max_volume_domestic || match.max_volume_international,
+              maxWeight: match.max_weight,
+              maxVolume: match.max_volume,
             });
           } else {
             setLimits({ maxWeight: null, maxVolume: null });

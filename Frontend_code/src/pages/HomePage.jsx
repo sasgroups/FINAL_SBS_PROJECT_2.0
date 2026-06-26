@@ -194,8 +194,8 @@ const HomePage = () => {
   };
 
   const createBaggageData = (flight, details) => {
-    const maxWeight = flight.max_weight_domestic || flight.max_weight_international;
-    const maxVolume = flight.max_volume_domestic || flight.max_volume_international;
+    const maxWeight = flight.max_weight;
+    const maxVolume = flight.max_volume;
 
     return {
       airline: flight.airline,
@@ -248,8 +248,8 @@ const HomePage = () => {
   const createManualBaggageData = (match) => ({
     airline: match.airline,
     airlineLogo: match.logo,
-    maxWeight: match.max_weight_domestic || match.max_weight_international,
-    maxVolume: match.max_volume_domestic || match.max_volume_international,
+    maxWeight: match.max_weight,
+    maxVolume: match.max_volume,
     flightNumber: "---",
     passengerName: "Manual Entry",
   });

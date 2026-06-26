@@ -17,8 +17,12 @@ const ManualEntrySection = ({
   const [scrollTop, setScrollTop] = useState(0);
   const [dragged, setDragged] = useState(false);
 
+  const isTouchLikePointer = (pointerType) =>
+    pointerType === "touch" || pointerType === "pen";
+
   const handlePointerDown = (e) => {
-    if (!listRef.current) return;
+    if (!listRef.current || !isTouchLikePointer(e.pointerType)) return;
+
     setIsDragging(true);
     setDragged(false);
     setStartY(e.pageY);
@@ -27,7 +31,8 @@ const ManualEntrySection = ({
   };
 
   const handlePointerMove = (e) => {
-    if (!isDragging || !listRef.current) return;
+    if (!isDragging || !listRef.current || !isTouchLikePointer(e.pointerType)) return;
+
     const y = e.pageY;
     const walk = (y - startY) * 1.5;
     if (Math.abs(walk) > 5) setDragged(true);
@@ -35,6 +40,8 @@ const ManualEntrySection = ({
   };
 
   const handlePointerUp = (e) => {
+    if (!listRef.current || !isTouchLikePointer(e.pointerType)) return;
+
     setIsDragging(false);
     if (listRef.current && listRef.current.hasPointerCapture(e.pointerId)) {
       listRef.current.releasePointerCapture(e.pointerId);
@@ -171,7 +178,7 @@ const ManualEntrySection = ({
                   onPointerMove={handlePointerMove}
                   onPointerUp={handlePointerUp}
                   onPointerCancel={handlePointerUp}
-                  className="absolute left-0 right-0 mt-2 rounded-2xl z-50 cursor-grab active:cursor-grabbing"
+                  className="absolute left-0 right-0 mt-2 rounded-2xl z-50"
                   style={{
                     background: "var(--theme-cardBg)",
                     border: "1px solid var(--theme-border)",
@@ -180,9 +187,9 @@ const ManualEntrySection = ({
                     overflowY: "auto",
                     WebkitOverflowScrolling: "touch",
                     overscrollBehavior: "contain",
-                    scrollbarWidth: "thin", // Firefox
+                    scrollbarWidth: "thin",
                     scrollbarColor: "rgba(255,255,255,0.4) rgba(255,255,255,0.1)",
-                    touchAction: "none",
+                    touchAction: "pan-y",
                   }}
                 >
                   {/* Thin scrollbar styling for WebKit (Chrome, Safari, Edge) */}

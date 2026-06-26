@@ -7,7 +7,7 @@ const themes = {
     bg: '#0f172a',
     font: '#ffffff',
     cardBg: '#0f172a',
-    border: '#1e293b',
+    border: '#151c29',
     fontnew: '#f1a607'
    
   },

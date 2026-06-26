@@ -20,7 +20,7 @@ exports.createFlight = async (req, res) => {
       flight_code,
       flight_number,
       max_weight,
-      dimension,
+      volume,
     } = req.body;
 
     const normalizeNumber = (value) => {
@@ -31,19 +31,17 @@ exports.createFlight = async (req, res) => {
 
     const codeValue = flight_code || flight_number;
     const weightValue = normalizeNumber(max_weight);
-    const dimensionValue = normalizeNumber(dimension);
+    const volumeValue = normalizeNumber(volume);
 
-    if (!airline || !codeValue || weightValue === null || dimensionValue === null) {
+    if (!airline || !codeValue || weightValue === null || volumeValue === null) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
     const newFlight = {
       airline,
       flight_number: codeValue,
-      max_weight_domestic: weightValue,
-      max_weight_international: weightValue,
-      max_volume_domestic: dimensionValue,
-      max_volume_international: dimensionValue,
+      max_weight: weightValue,
+      max_volume: volumeValue,
     };
 
     await flightModel.createFlight(newFlight);
@@ -73,9 +71,9 @@ exports.getFlightByNumber = async (req, res) => {
     const flight = rows[0];
 
     const baggageLimit = {
-      maxWeight: flight.max_weight_domestic || flight.max_weight_international,
-      maxVolume: flight.max_volume_domestic || flight.max_volume_international,
-      maxDimension: flight.max_volume_domestic || flight.max_volume_international,
+      maxWeight: flight.max_weight,
+      maxVolume: flight.max_volume,
+      maxDimension: flight.max_volume,
     };
 
     res.json({
@@ -119,7 +117,7 @@ exports.updateFlight = async (req, res) => {
     flight_code,
     flight_number,
     max_weight,
-    dimension,
+    volume,
   } = req.body;
 
   try {
@@ -131,18 +129,16 @@ exports.updateFlight = async (req, res) => {
 
     const codeValue = flight_code || flight_number;
     const weightValue = normalizeNumber(max_weight);
-    const dimensionValue = normalizeNumber(dimension);
+    const volumeValue = normalizeNumber(volume);
 
     const updateData = {};
     if (airline !== undefined) updateData.airline = airline;
     if (codeValue !== undefined) updateData.flight_number = codeValue;
     if (weightValue !== null) {
-      updateData.max_weight_domestic = weightValue;
-      updateData.max_weight_international = weightValue;
+      updateData.max_weight = weightValue;
     }
-    if (dimensionValue !== null) {
-      updateData.max_volume_domestic = dimensionValue;
-      updateData.max_volume_international = dimensionValue;
+    if (volumeValue !== null) {
+      updateData.max_volume = volumeValue;
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -174,8 +170,7 @@ exports.getFlightsByAirline = async (req, res) => {
   try {
     const [flights] = await db.execute(
       `SELECT id, airline, flight_number AS flight_code,
-              max_weight_domestic, max_volume_domestic,
-              max_weight_international, max_volume_international,
+              max_weight, max_volume,
               created_at
        FROM flights
        WHERE airline = ?`,

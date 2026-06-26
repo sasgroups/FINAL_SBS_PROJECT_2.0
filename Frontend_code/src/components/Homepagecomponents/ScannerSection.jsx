@@ -77,12 +77,12 @@ const ScannerSection = ({ scanning, barcodeDetected, onScan, onShowInstructions 
         }}
       >
       <div
-        className="relative rounded-[23px] p-6 h-full flex flex-col w-full justify-between "
+        className="relative rounded-[23px] p-6 h-full flex flex-col w-full justify-between gap-5"
         style={{ backgroundColor: "var(--theme-cardBg)" }}
       >
           {/* ── Header ── */}
           <div
-          className="flex items-center gap-3 mb-5 pb-4 border-b"
+          className="flex items-center gap-3 pb-4 mb-1 border-b"
           style={{ borderColor: "rgba(255,255,255,0.08)" }}
         >
              <div className="flex items-center gap-2">
@@ -108,10 +108,10 @@ const ScannerSection = ({ scanning, barcodeDetected, onScan, onShowInstructions 
              </div>
 
           {/* ── Scanner Viewport ── */}
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-center w-full flex-1 py-4">
           <div
-            className="relative cursor-pointer select-none flex-shrink-0 "
-            style={{ width: 164, height: 164 }}
+            className="relative cursor-pointer select-none flex-shrink-0"
+            style={{ width: 180, maxWidth: 350, aspectRatio: "1 / 1", minHeight: 170, maxHeight: 330 }}
             onClick={onScan}
           >
             {/* Outer pulse ring */}
@@ -214,14 +214,19 @@ const ScannerSection = ({ scanning, barcodeDetected, onScan, onShowInstructions 
           </div>
 
           {/* Status text */}
-          <p className="text-base font-semibold opacity-90 text-center leading-snug" style={{ color: "var(--theme-font)" }}>
-            {barcodeDetected
-              ? t("processingFlightInfo") || "Processing flight info…"
-              : t("holdPass")}
-          </p>
+          <div className="flex flex-col items-center gap-1.5 mt-1 px-2">
+            <p className="text-base font-semibold opacity-90 text-center leading-snug" style={{ color: "var(--theme-font)" }}>
+              {barcodeDetected
+                ? t("processingFlightInfo") || "Processing flight info…"
+                : t("holdPass")}
+            </p>
+            <p className="text-sm opacity-70 text-center" style={{ color: "var(--theme-font)" }}>
+              {t("howToScanProperly")}
+            </p>
+          </div>
 
           {/* How-to button */}
-        <div className="flex items-center justify-center width-full" ><button
+        <div className="flex items-center justify-center width-full mt-2" ><button
             onClick={onShowInstructions}
             className="px-3 py-2 rounded-2xl text-[12px] font-bold flex items-center justify-center w-fit gap-2 transition-all border shadow-sm hover:brightness-110"
             style={{

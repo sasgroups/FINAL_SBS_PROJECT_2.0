@@ -62,7 +62,7 @@ const Maintenance = () => {
   return (
     <div className="bg-gray-300 flex">
       {/* Sidebar */}
-      <aside className="fixed left-0 h-full w-20 bg-slate-800 text-white flex flex-col justify-between py-4">
+      <aside className="fixed left-0 h-full w-20 bg-slate-800 text-white flex flex-col  py-4">
         <div>
           {/* 1️⃣ Dashboard */}
           <IconButton 
