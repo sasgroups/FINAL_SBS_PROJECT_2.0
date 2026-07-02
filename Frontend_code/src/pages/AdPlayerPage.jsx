@@ -46,6 +46,45 @@ export default function WelcomeAdPage() {
   const pollIntervalRef = useRef(null);
   const adVersionRef = useRef(null);
 
+  // --- Secret Admin Gesture: touch ad area with 4+ fingers for 5 seconds ---
+  const adAreaPointers = useRef(new Set());
+  const adminHoldTimer = useRef(null);
+
+  const startAdminTimer = useCallback(() => {
+    if (adminHoldTimer.current) return; // already running
+    adminHoldTimer.current = setTimeout(() => {
+      navigate("/admin");
+    }, 5000);
+  }, [navigate]);
+
+  const cancelAdminTimer = useCallback(() => {
+    if (adminHoldTimer.current) {
+      clearTimeout(adminHoldTimer.current);
+      adminHoldTimer.current = null;
+    }
+  }, []);
+
+  const handleAdAreaPointerDown = useCallback((e) => {
+    adAreaPointers.current.add(e.pointerId);
+    if (adAreaPointers.current.size >= 4) {
+      startAdminTimer();
+    }
+  }, [startAdminTimer]);
+
+  const handleAdAreaPointerUp = useCallback((e) => {
+    adAreaPointers.current.delete(e.pointerId);
+    if (adAreaPointers.current.size < 4) {
+      cancelAdminTimer();
+    }
+  }, [cancelAdminTimer]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => { cancelAdminTimer(); };
+  }, [cancelAdminTimer]);
+  // --- End Secret Admin Gesture ---
+
+
   useEffect(() => {
     // Preconnect to API to speed up network requests
     if (API_URL) {
@@ -423,6 +462,7 @@ export default function WelcomeAdPage() {
         </div>
       )}
 
+
       {/* Top Carousel */}
       <div
         className="h-[11%] min-h-[120px] pb-6 flex flex-col items-center justify-center p-2"
@@ -466,7 +506,13 @@ export default function WelcomeAdPage() {
       </div>
 
       {/* Ad Display Area */}
-      <div className="flex-1 relative overflow-hidden" style={{ backgroundColor: "#000000" }}>
+      <div
+        className="flex-1 relative overflow-hidden"
+        style={{ backgroundColor: "#000000" }}
+        onPointerDown={handleAdAreaPointerDown}
+        onPointerUp={handleAdAreaPointerUp}
+        onPointerCancel={handleAdAreaPointerUp}
+      >
         {hasAds ? (
           isImage ? (
             <div className="w-full h-full flex items-center justify-center">

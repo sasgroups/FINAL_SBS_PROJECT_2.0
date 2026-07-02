@@ -34,7 +34,7 @@ const HomePage = () => {
   const [showInstructions, setShowInstructions] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [errorModal, setErrorModal] = useState(null); // New state for persistent error modal
+  const [errorModal, setErrorModal] = useState(null);
 
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -132,15 +132,12 @@ const HomePage = () => {
     }
 
     const baggageData = createBaggageData(matchedFlight, details);
-    // Update loading overlay with actual flight details
     setLoadingFlight({
       name: baggageData.airline,
       logo: baggageData.airlineLogo,
       flight: baggageData.flightNumber,
     });
-    // Navigate immediately – no artificial delay
     navigate("/baggageCheckPage", { state: { baggageData } });
-    // Reset states after navigation (component will unmount, but still clean up)
     setLoadingFlight(null);
     setBarcodeDetected(false);
     setIsProcessing(false);
@@ -153,7 +150,6 @@ const HomePage = () => {
     console.log("Scanned airline name:", scannedAirline);
     console.log("Scanned airline code:", scannedCode);
 
-    // First try exact match on airline code (only if both are defined)
     if (scannedCode) {
       const codeMatch = flights.find(f => {
         const airlineCode = f.code?.trim().toLowerCase();
@@ -165,7 +161,6 @@ const HomePage = () => {
       }
     }
 
-    // Then try exact match on airline name (only if both are defined)
     if (scannedAirline) {
       const exactNameMatch = flights.find(f => {
         const airlineName = f.airline?.trim().toLowerCase();
@@ -177,7 +172,6 @@ const HomePage = () => {
       }
     }
 
-    // Fallback: partial name match (least preferred)
     if (scannedAirline) {
       const partialMatch = flights.find(f => {
         const airlineName = f.airline?.trim().toLowerCase();
@@ -212,7 +206,6 @@ const HomePage = () => {
   };
 
   const handleFlightNotFound = () => {
-    // Set persistent modal error instead of temporary toast
     setErrorModal({
       message: "No details found for this flight.",
       show: true,
@@ -288,31 +281,31 @@ const HomePage = () => {
       }}
     >
       <BackgroundElements />
-
       {loadingFlight && <LoadingOverlay loadingFlight={loadingFlight} />}
-      <div className="shrink-0 overflow-hidden relative" style={{ height: "55dvh", backgroundColor: "var(--theme-cardBg)" }}>
+
+      {/* Ad Banner – 55% of viewport height */}
+      <div
+        className="shrink-0 overflow-hidden relative"
+        style={{ height: "55dvh", backgroundColor: "var(--theme-cardBg)" }}
+      >
         <AdBanner />
       </div>
 
-      <Timmer />
-
+      {/* Bottom section – takes the remaining 45% */}
       <div
-        className="flex shrink-0 flex-col overflow-hidden"
-        style={{
-          height: "45dvh",
-          backgroundColor: "var(--theme-cardBg)",
-          color: "var(--theme-font)",
-        }}
+        className="flex flex-col flex-1 overflow-hidden"
+        style={{ backgroundColor: "var(--theme-cardBg)" }}
       >
+        <Timmer />
         <AirportHeader />
 
-        <div className="flex-1 overflow-y-auto  px-6 py-2">
-          <div className="max-w-[1050px] mx-auto flex flex-col items-between gap-16">
+        <div className="flex-1 overflow-y-auto px-6 py-2">
+          <div className="max-w-[1100px] mx-auto flex flex-col items-between justify-between gap-16">
             {!socketConnected && (
-              <div className="text-sm mb-1"
-                style={{
-                  color: "var(--theme-fontnew)",
-                }}></div>
+              <div
+                className="text-sm mb-1"
+                style={{ color: "var(--theme-fontnew)" }}
+              />
             )}
 
             <div className="flex flex-col md:flex-row items-stretch gap-6 mb-4">
@@ -324,17 +317,22 @@ const HomePage = () => {
                   onShowInstructions={() => setShowInstructions(!showInstructions)}
                 />
               </div>
+
               {/* Desktop Vertical Divider */}
               <div className="hidden md:flex flex-col items-center justify-center px-2">
                 <div className="w-px bg-white/20 flex-1"></div>
-                <span className="py-6 text-white/40 font-bold tracking-widest text-sm">{t("or") || "OR"}</span>
+                <span className="py-6 text-white/40 font-bold tracking-widest text-sm">
+                  {t("or") || "OR"}
+                </span>
                 <div className="w-px bg-white/20 flex-1"></div>
               </div>
 
               {/* Mobile Horizontal Divider */}
               <div className="flex md:hidden items-center justify-center w-full px-2 py-4">
                 <div className="h-px bg-white/20 flex-1"></div>
-                <span className="px-4 text-white/40 font-bold tracking-widest text-sm">{t("or") || "OR"}</span>
+                <span className="px-4 text-white/40 font-bold tracking-widest text-sm">
+                  {t("or") || "OR"}
+                </span>
                 <div className="h-px bg-white/20 flex-1"></div>
               </div>
 
@@ -349,11 +347,14 @@ const HomePage = () => {
               </div>
             </div>
 
-            {showInstructions && <InstructionsModal onClose={() => setShowInstructions(false)} />}
-
-            <AssistanceFooter />
+            {showInstructions && (
+              <InstructionsModal onClose={() => setShowInstructions(false)} />
+            )}
           </div>
         </div>
+
+        {/* Footer – now at the bottom of the 45% container */}
+        <AssistanceFooter />
       </div>
 
       {/* Persistent Error Modal */}
@@ -372,8 +373,18 @@ const HomePage = () => {
                 onClick={() => setErrorModal(null)}
                 className="text-gray-400 hover:text-white focus:outline-none"
               >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>

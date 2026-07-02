@@ -7,10 +7,10 @@ const ManualEntrySection = ({
   onManualEntry,
   t,
 }) => {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(true);
   const dropdownRef = useRef(null);
 
-  // Drag to scroll state
+  // Drag to scroll state (unchanged)
   const listRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startY, setStartY] = useState(0);
@@ -22,7 +22,6 @@ const ManualEntrySection = ({
 
   const handlePointerDown = (e) => {
     if (!listRef.current || !isTouchLikePointer(e.pointerType)) return;
-
     setIsDragging(true);
     setDragged(false);
     setStartY(e.pageY);
@@ -32,7 +31,6 @@ const ManualEntrySection = ({
 
   const handlePointerMove = (e) => {
     if (!isDragging || !listRef.current || !isTouchLikePointer(e.pointerType)) return;
-
     const y = e.pageY;
     const walk = (y - startY) * 1.5;
     if (Math.abs(walk) > 5) setDragged(true);
@@ -41,15 +39,11 @@ const ManualEntrySection = ({
 
   const handlePointerUp = (e) => {
     if (!listRef.current || !isTouchLikePointer(e.pointerType)) return;
-
     setIsDragging(false);
     if (listRef.current && listRef.current.hasPointerCapture(e.pointerId)) {
       listRef.current.releasePointerCapture(e.pointerId);
     }
   };
-
-
-
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -62,29 +56,41 @@ const ManualEntrySection = ({
   }, []);
 
   const airlines = [...new Set((flights || []).map((f) => f.airline))];
-
   const selectAirline = (airline) => {
     setSelectedAirline(airline);
     setDropdownOpen(false);
   };
-
   const isReady = Boolean(selectedAirline);
+
+  // 🔥 NEW: Bold, filled airplane icon (classic side view)
+  const AirplaneIcon = ({ className = "w-5 h-5" }) => (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M21 14.5a1.5 1.5 0 01-1.5 1.5h-4.5l-4.5 4.5h-2l1.5-4.5H6l-1.5 2.5H2.5l1-3.5-1-3.5h2.5L6 11h4.5L9 6.5h2l4.5 4.5h4.5a1.5 1.5 0 011.5 1.5v2z" />
+    </svg>
+  );
 
   return (
     <div
-      className="rounded-3xl p-px relative overflow-hidden h-full shadow-2xl"
+      className="rounded-3xl  relative overflow-hidden h-full shadow-2xl"
       style={{
         background: isReady
-          ? "rgba(255,255,255,0.18)"
-          : "rgba(100,116,139,0.35)",
+          ? "rgba(255, 255, 255, 0.06)"
+          : "rgba(255, 255, 255, 0.06)",
         transition: "background 0.5s ease",
+        border: `1px solid rgba(255,255,255,0.08)`,
+
       }}
     >
       <div
         className="relative rounded-[23px] p-6 h-full flex flex-col w-full"
         style={{ backgroundColor: "var(--theme-cardBg)" }}
       >
-        {/* Header */}
+        {/* Header - unchanged */}
         <div
           className="flex items-center gap-3 mb-5 pb-4 border-b"
           style={{ borderColor: "rgba(255,255,255,0.08)" }}
@@ -144,6 +150,7 @@ const ManualEntrySection = ({
             </div>
 
             <div className="relative" ref={dropdownRef}>
+              {/* Main button */}
               <button
                 type="button"
                 onClick={() => setDropdownOpen((o) => !o)}
@@ -159,7 +166,12 @@ const ManualEntrySection = ({
                     : "rgba(255,255,255,0.1)",
                 }}
               >
-                <span>{selectedAirline || t("chooseAirline")}</span>
+                <span className="flex items-center gap-3">
+                  {selectedAirline && (
+                    <AirplaneIcon className="w-6 h-6 text-white opacity-90" />
+                  )}
+                  <span>{selectedAirline || t("chooseAirline")}</span>
+                </span>
                 <svg
                   className={`w-4 h-4 text-white opacity-50 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
                   fill="none"
@@ -170,7 +182,7 @@ const ManualEntrySection = ({
                 </svg>
               </button>
 
-              {/* Dropdown panel – single scroll container, thin scrollbar */}
+              {/* Dropdown panel */}
               {dropdownOpen && (
                 <div
                   ref={listRef}
@@ -183,7 +195,7 @@ const ManualEntrySection = ({
                     background: "var(--theme-cardBg)",
                     border: "1px solid var(--theme-border)",
                     boxShadow: "0 20px 40px rgba(0,0,0,0.7)",
-                    maxHeight: 220,
+                    maxHeight: 280,
                     overflowY: "auto",
                     WebkitOverflowScrolling: "touch",
                     overscrollBehavior: "contain",
@@ -192,7 +204,6 @@ const ManualEntrySection = ({
                     touchAction: "pan-y",
                   }}
                 >
-                  {/* Thin scrollbar styling for WebKit (Chrome, Safari, Edge) */}
                   <style>
                     {`
                       .absolute.left-0.right-0.mt-2.rounded-2xl.z-50::-webkit-scrollbar {
@@ -218,71 +229,66 @@ const ManualEntrySection = ({
                       No airlines available
                     </div>
                   ) : (
-                    airlines.map((airline, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={(e) => {
-                          if (dragged) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            return;
-                          }
-                          selectAirline(airline);
-                        }}
-                        className="w-full text-left px-4 py-3 text-sm font-medium transition-colors duration-100 flex items-center gap-3 select-none"
-                        style={{
-                          color: "var(--theme-font)",
-                          opacity: selectedAirline === airline ? 1 : 0.75,
-                          backgroundColor:
-                            selectedAirline === airline
-                              ? "var(--theme-border)"
-                              : "transparent",
-                          borderBottom:
-                            idx < airlines.length - 1
-                              ? "1px solid var(--theme-border)"
-                              : "none",
-                        }}
-                        onMouseEnter={(e) => {
-                          if (selectedAirline !== airline)
-                            e.currentTarget.style.backgroundColor =
-                              "rgba(255,255,255,0.06)";
-                        }}
-                        onMouseLeave={(e) => {
-                          if (selectedAirline !== airline)
-                            e.currentTarget.style.backgroundColor =
-                              "transparent";
-                        }}
-                      >
-                        {selectedAirline === airline && (
-                          <svg
-                            className="w-3.5 h-3.5 text-white shrink-0 opacity-80"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="3"
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        )}
-                        <span
-                          className={selectedAirline === airline ? "" : "ml-6"}
+                    <div className="grid grid-cols-2 gap-0 p-1">
+                      {airlines.map((airline, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={(e) => {
+                            if (dragged) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              return;
+                            }
+                            selectAirline(airline);
+                          }}
+                          className="w-full text-left px-3 py-2.5 text-sm font-medium transition-colors duration-100 flex items-center gap-2 select-none rounded-lg"
+                          style={{
+                            color: "var(--theme-font)",
+                            opacity: selectedAirline === airline ? 1 : 0.75,
+                            backgroundColor:
+                              selectedAirline === airline
+                                ? "var(--theme-border)"
+                                : "transparent",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (selectedAirline !== airline)
+                              e.currentTarget.style.backgroundColor =
+                                "rgba(255,255,255,0.06)";
+                          }}
+                          onMouseLeave={(e) => {
+                            if (selectedAirline !== airline)
+                              e.currentTarget.style.backgroundColor =
+                                "transparent";
+                          }}
                         >
-                          {airline}
-                        </span>
-                      </button>
-                    ))
+                          <AirplaneIcon className="w-5 h-5 text-white opacity-70" />
+                          <span className="flex-1">{airline}</span>
+                          {selectedAirline === airline && (
+                            <svg
+                              className="w-3.5 h-3.5 text-white shrink-0 opacity-80"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="3"
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                          )}
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Continue Button */}
+          {/* Continue Button - unchanged */}
           <div className="flex items-center justify-center width-full">
             <button
               onClick={onManualEntry}

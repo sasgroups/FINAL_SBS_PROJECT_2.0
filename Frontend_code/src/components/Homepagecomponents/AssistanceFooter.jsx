@@ -6,10 +6,10 @@ const AssistanceFooter = () => {
 
   return (
     <div
-      className="mt-6 pt-5 pb-8 px-1"
+      className=" p-12 rounded-t-2xl backdrop-blur-sm"
       style={{
         borderTop: `1px solid var(--theme-border)`,
-        background: "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))",
+        // background: "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))",
       }}
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -135,7 +135,7 @@ const AssistanceFooter = () => {
                 className="text-xs font-medium"
                 style={{ color: "var(--theme-font)" }}
               >
-                Secure Connection
+                {t("SecureConnection")}
               </p>
             </div>
             <p

@@ -7,6 +7,8 @@ const HomePage = lazy(() => import('./pages/HomePage'));
 const BaggageCheckPage = lazy(() => import('./pages/BaggageCheckPage'));
 const Maintenance = lazy(() => import('./pages/MaintenancePage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
+const AdminLoginPage = lazy(() => import('./pages/Admin'));
+
 
 function App() {
   // Disable pinch‑zoom and drag gestures
@@ -61,6 +63,8 @@ function App() {
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/baggageCheckPage" element={<BaggageCheckPage />} />
             <Route path="/maintenance" element={<Maintenance />} />
+            <Route path="/admin" element={<AdminLoginPage />} />
+
           </Routes>
         </Suspense>
       </div>

@@ -20,10 +20,10 @@ const AnimatedNumber = ({ value, decimals = 0, duration = 800 }) => {
       if (!startTimestamp) startTimestamp = timestamp;
       const progress = Math.min((timestamp - startTimestamp) / duration, 1);
       const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
-      
+
       const current = startValue + (numericValue - startValue) * easeProgress;
       setDisplayValue(current);
-      
+
       if (progress < 1) {
         animationFrame = window.requestAnimationFrame(step);
       } else {
@@ -166,7 +166,7 @@ export default function BaggageCheckPage() {
         });
         clearTimeout(timeoutId);
         if (!res.ok) throw new Error("Fetch failed");
-        
+
         const data = await res.json();
         errorCount = 0; // reset on success
         if (data?.weight !== undefined) {
@@ -219,7 +219,7 @@ export default function BaggageCheckPage() {
         if (!res.ok) throw new Error("Fetch failed");
         const data = await res.json();
         errorCount = 0;
-        
+
         if (data?.detected && weightStable && currentWeight > 0.1) {
           clearTimeout(timeoutId);
           setDimensions({
@@ -261,7 +261,7 @@ export default function BaggageCheckPage() {
       if (baggageData.maxWeight && baggageData.maxVolume) {
         return;
       }
-      
+
       setIsLoadingLimits(true);
       try {
         if (airline) {
@@ -269,7 +269,7 @@ export default function BaggageCheckPage() {
           const res = await fetch(`${API_URL}/api/flights?t=${cacheBust}`);
           if (!res.ok) throw new Error("Failed to fetch");
           const data = await res.json();
-          
+
           const match = data.find((f) => f.airline === airline);
           if (match) {
             setLimits({
@@ -305,9 +305,9 @@ export default function BaggageCheckPage() {
   const baggageRecommendation = (() => {
     if (currentWeight <= 0.1 || volume === 0 || !objectDetected) {
       return {
-        title: t('Awaiting measurement') || 'Awaiting measurement',
+        title: t('Awaiting_measurement') || 'Awaiting measurement',
         description:
-          t('Place your baggage on the scale to check whether it qualifies as cabin baggage or requires check-in.') ||
+          t('Awaiting_measurement_desc') ||
           'Place your baggage on the scale to check whether it qualifies as cabin baggage or requires check-in.',
         tone: 'info',
       };
@@ -315,23 +315,22 @@ export default function BaggageCheckPage() {
 
     if (!checkInRequired) {
       return {
-        title: t('Cabin baggage OK') || 'Cabin baggage OK',
+        title: t('Cabin_baggage_OK') || 'Cabin baggage OK',
         description:
-          t('Your bag is within the allowed weight and size limits for cabin baggage. Keep it with you onboard.') ||
+          t('Cabin_baggage_OK_desc') ||
           'Your bag is within the allowed weight and size limits for cabin baggage. Keep it with you onboard.',
         tone: 'success',
       };
     }
 
     return {
-      title: t('Check-in baggage required') || 'Check-in baggage required',
+      title: t('Check_in_baggage_required') || 'Check-in baggage required',
       description:
-        t('Your bag exceeds the cabin weight or size limit. Please use check-in baggage at the counter.') ||
+        t('Check_in_baggage_required_desc') ||
         'Your bag exceeds the cabin weight or size limit. Please use check-in baggage at the counter.',
       tone: 'warning',
     };
   })();
-
   const statusColors = {
     gray: {
       bg: "rgba(0, 0, 0, 0.05)",
@@ -423,14 +422,14 @@ export default function BaggageCheckPage() {
     >
       {hardwareError && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="rounded-2xl p-10 shadow-2xl max-w-lg text-center transform transition-all scale-100" style={{ backgroundColor: 'var(--theme-cardBg)', border: '1px solid var(--theme-border)'}}>
+          <div className="rounded-2xl p-10 shadow-2xl max-w-lg text-center transform transition-all scale-100" style={{ backgroundColor: 'var(--theme-cardBg)', border: '1px solid var(--theme-border)' }}>
             <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-red-100/20 mb-6 border border-red-500/30">
               <span className="text-4xl">⚠️</span>
             </div>
             <h2 className="text-3xl font-bold mb-4 text-red-500">
               {t("System Error") || "System Error"}
             </h2>
-            <p className="text-xl mb-8" style={{ color: 'var(--theme-font)'}}>
+            <p className="text-xl mb-8" style={{ color: 'var(--theme-font)' }}>
               {t("There is a problem with the kiosk. Please contact airline staff for assistance.") || "There is a problem with the kiosk. Please contact airline staff for assistance."}
             </p>
             <button
@@ -456,7 +455,7 @@ export default function BaggageCheckPage() {
         </div>
 
         <div
-          className="rounded-xl p-8 shadow-lg w-full max-w-7xl flex flex-col gap-6 text-center m-10 mx-auto backdrop-blur-sm"
+          className="rounded-xl p-8 shadow-lg w-full max-w-7xl flex flex-col gap-6 justify-center items-center m-10 mx-auto backdrop-blur-sm"
           style={{
             backgroundColor: "rgba(0, 0, 0, 0.05)",
             border: `1px solid var(--theme-border)`,
@@ -475,24 +474,24 @@ export default function BaggageCheckPage() {
             >
               <span className="text-6xl mb-2">🛄</span>
               <p className="text-2xl" style={{ color: "var(--theme-font)" }}>
-                {t("No Baggage Detected")}
+                {t("No_Baggage_Detected")}
               </p>
               <p className="text-lg" style={{ color: "var(--theme-font)", opacity: 0.7 }}>
-                {t("Please place your baggage on the scale")}
+                {t("noBaggageDetectedAlert")}
               </p>
               <div
                 className="mt-4 p-4 rounded-lg"
                 style={{ backgroundColor: "rgba(0, 0, 0, 0.1)" }}
               >
                 <p className="text-sm" style={{ color: "var(--theme-font)", opacity: 0.6 }}>
-                  Current reading: Weight = {currentWeight.toFixed(2)} kg
+                  {t("Current_reading_Weight")} = {currentWeight.toFixed(2)} {t("Kg")}
                 </p>
               </div>
             </div>
           ) : (
             /* ----- Measurement Layout ----- */
             <>
-              <div className="mb-2">
+              <div className="mb-2 flex flex-col items-center justify-center gap-2">
                 <h1 className="text-3xl font-bold" style={{ color: "var(--theme-font)" }}>
                   ⚖️ {t("placeBaggage")}
                 </h1>
@@ -510,17 +509,59 @@ export default function BaggageCheckPage() {
                     <span style={{ color: "var(--theme-font)" }}>✈️ {airline}</span>
                     <span style={{ color: "var(--theme-font)", opacity: 0.6 }}>•</span>
                     <span style={{ color: "var(--theme-font)" }}>
-                      {origin} → {destination}
+                      {origin}  {destination}
                     </span>
                   </div>
                 )}
               </div>
+              <div
+                className="mt-6 rounded-3xl p-6 border shadow-sm w-full max-w-3xl"
+                style={{
+                  backgroundColor:
+                    baggageRecommendation.tone === 'success'
+                      ? 'rgba(16, 185, 129, 0.08)'
+                      : baggageRecommendation.tone === 'warning'
+                        ? 'rgba(245, 158, 11, 0.1)'
+                        : 'rgba(148, 163, 184, 0.08)',
+                  border: `1px solid ${baggageRecommendation.tone === 'success'
+                    ? 'rgba(16, 185, 129, 0.25)'
+                    : baggageRecommendation.tone === 'warning'
+                      ? 'rgba(245, 158, 11, 0.3)'
+                      : 'rgba(148, 163, 184, 0.3)'
+                    }`,
+                }}
+              >
+                <div className="flex flex-col gap-4 items-center justify-center w-full max-w-3xl">
+                  <div className="flex justify-between gap-2 w-full items-center">
+                    <p className="text-lg font-semibold" style={{ color: 'var(--theme-font)' }}>
+                      {baggageRecommendation.title}
+                    </p>
+                    <div className="flex items-center gap-3 text-sm font-semibold" style={{ color: 'var(--theme-font)', opacity: 0.85 }}>
+                      <span>
+                        {baggageRecommendation.tone === 'success'
+                          ? '✅'
+                          : baggageRecommendation.tone === 'warning'
+                            ? '⚠️'
+                            : 'ℹ️'}
+                      </span>
+                      <span>
+                        {checkInRequired
+                          ? t('Please_take_this_bag_to_check_in') || 'Please take this bag to check-in.'
+                          : t('This_bag_is_okay_for_cabin_baggage') || 'This bag is okay for cabin baggage.'}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-sm leading-6" style={{ color: 'var(--theme-font)', opacity: 0.85 }}>
+                    {baggageRecommendation.description}
+                  </p>
 
+                </div>
+              </div>
               {/* Measurement Cards */}
-              <div className="flex justify-center gap-8 w-full max-w-7xl">
+              <div className="flex justify-center gap-8 w-full mt-6 max-w-5xl">
                 {/* Weight Card */}
                 <div
-                  className={`relative w-full sm:w-[500px] p-8 rounded-2xl shadow-xl backdrop-blur-sm transition-all duration-300`}
+                  className={`relative w-full  px-4 py-8  rounded-2xl shadow-xl backdrop-blur-sm transition-all duration-300`}
                   style={{
                     backgroundColor: statusColors[weightStatus].bg,
                     border: `1px solid ${statusColors[weightStatus].border}`,
@@ -535,16 +576,16 @@ export default function BaggageCheckPage() {
                   >
                     ⚖️
                   </div>
-                  <h2 className="text-xl font-semibold mb-4" style={{ color: "var(--theme-font)" }}>
+                  <h2 className="text-xl text-center font-semibold mb-4" style={{ color: "var(--theme-font)" }}>
                     {t("weight")}
                   </h2>
-                  <p className="text-7xl font-dsdigital" style={{ color: statusColors[weightStatus].text }}>
+                  <p className="text-7xl text-center font-dsdigital" style={{ color: statusColors[weightStatus].text }}>
                     {currentWeight > 0 ? <AnimatedNumber value={currentWeight} decimals={2} /> : "--"}{" "}
                     <span className="text-2xl ml-2" style={{ color: "var(--theme-font)", opacity: 0.7 }}>
                       {t("kg")}
                     </span>
                   </p>
-                  <div className="mt-6 flex items-center justify-between">
+                  <div className="mt-8 flex items-center justify-between">
                     <div>
                       <p className="text-sm" style={{ color: "var(--theme-font)", opacity: 0.7 }}>
                         {t("max")}:
@@ -568,10 +609,10 @@ export default function BaggageCheckPage() {
                         {weightStatus === "gray"
                           ? t("noBaggage")
                           : weightStatus === "green"
-                          ? t("withinLimit")
-                          : weightStatus === "yellow"
-                          ? t("slightlyOver")
-                          : t("overLimit")}
+                            ? t("withinLimit")
+                            : weightStatus === "yellow"
+                              ? t("slightlyOver")
+                              : t("overLimit")}
                       </p>
                     </div>
                   </div>
@@ -579,7 +620,7 @@ export default function BaggageCheckPage() {
 
                 {/* Volume Card */}
                 <div
-                  className={`relative w-full sm:w-[500px] p-8 rounded-2xl shadow-xl backdrop-blur-sm transition-all duration-300`}
+                  className={`relative w-full px-4 py-8  rounded-2xl shadow-xl backdrop-blur-sm transition-all duration-300`}
                   style={{
                     backgroundColor: statusColors[volumeStatus].bg,
                     border: `1px solid ${statusColors[volumeStatus].border}`,
@@ -594,16 +635,16 @@ export default function BaggageCheckPage() {
                   >
                     📏
                   </div>
-                  <h2 className="text-xl font-semibold mb-4" style={{ color: "var(--theme-font)" }}>
-                    {t("Total Size (L+W+H)")}
+                  <h2 className="text-xl text-center font-semibold mb-4" style={{ color: "var(--theme-font)" }}>
+                    {t("Total_Size")}
                   </h2>
-                  <p className="text-7xl font-dsdigital tracking-widest" style={{ color: isLoadingVolume ? "var(--theme-font)" : statusColors[volumeStatus].text }}>
+                  <p className="text-7xl text-center font-dsdigital tracking-widest" style={{ color: isLoadingVolume ? "var(--theme-font)" : statusColors[volumeStatus].text }}>
                     {isLoadingVolume ? <CalculatingNumbers length={3} /> : volume > 0 ? <AnimatedNumber value={volume} decimals={0} /> : "--"}{" "}
                     <span className="text-2xl ml-2" style={{ color: "var(--theme-font)", opacity: 0.7 }}>
                       cm
                     </span>
                   </p>
-                  <div className="mt-6 flex items-center justify-between">
+                  <div className="mt-8 flex items-center justify-between">
                     <div>
                       <p className="text-sm" style={{ color: "var(--theme-font)", opacity: 0.7 }}>
                         {t("max")}:
@@ -624,15 +665,15 @@ export default function BaggageCheckPage() {
                         style={{ color: isLoadingVolume ? "var(--theme-font)" : statusColors[volumeStatus].text }}
                       >
                         <span>{isLoadingVolume ? "⏳" : statusColors[volumeStatus].icon}</span>
-                        {isLoadingVolume 
-                          ? t("Measuring...") 
+                        {isLoadingVolume
+                          ? t("Measuring...")
                           : volumeStatus === "gray"
-                          ? t("noBaggage")
-                          : volumeStatus === "green"
-                          ? t("withinLimit")
-                          : volumeStatus === "yellow"
-                          ? t("slightlyOver")
-                          : t("overLimit")}
+                            ? t("noBaggage")
+                            : volumeStatus === "green"
+                              ? t("withinLimit")
+                              : volumeStatus === "yellow"
+                                ? t("slightlyOver")
+                                : t("overLimit")}
                       </p>
                     </div>
                   </div>
@@ -640,12 +681,13 @@ export default function BaggageCheckPage() {
               </div>
 
               {/* Individual Dimensions */}
-              <div className="flex justify-between gap-4 mt-6">
+              <div className="flex justify-center gap-8 w-full max-w-6xl mt-8">
                 <div
-                  className="flex-1 p-4 rounded-xl"
+                  className="flex flex-col items-center justify-center flex-1 p-4 rounded-xl"
                   style={{
-                    backgroundColor: "rgba(0, 0, 0, 0.05)",
+                    backgroundColor: "#1e293b",
                     border: `1px solid var(--theme-border)`,
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.73)",
                   }}
                 >
                   <p className="text-sm mb-2" style={{ color: "var(--theme-font)", opacity: 0.7 }}>
@@ -658,11 +700,13 @@ export default function BaggageCheckPage() {
                     cm
                   </span>
                 </div>
+
                 <div
-                  className="flex-1 p-4 rounded-xl"
+                  className="flex flex-col items-center justify-center flex-1 p-4 rounded-xl"
                   style={{
-                    backgroundColor: "rgba(0, 0, 0, 0.05)",
+                    backgroundColor: "#1e293b",
                     border: `1px solid var(--theme-border)`,
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
                   }}
                 >
                   <p className="text-sm mb-2" style={{ color: "var(--theme-font)", opacity: 0.7 }}>
@@ -675,11 +719,13 @@ export default function BaggageCheckPage() {
                     cm
                   </span>
                 </div>
+
                 <div
-                  className="flex-1 p-4 rounded-xl"
+                  className="flex flex-col items-center justify-center flex-1 p-4 rounded-xl"
                   style={{
-                    backgroundColor: "rgba(0, 0, 0, 0.05)",
+                    backgroundColor: "#1e293b",
                     border: `1px solid var(--theme-border)`,
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
                   }}
                 >
                   <p className="text-sm mb-2" style={{ color: "var(--theme-font)", opacity: 0.7 }}>
@@ -693,78 +739,35 @@ export default function BaggageCheckPage() {
                   </span>
                 </div>
               </div>
-              <div
-                className="mt-6 rounded-3xl p-6 border shadow-sm"
-                style={{
-                  backgroundColor:
-                    baggageRecommendation.tone === 'success'
-                      ? 'rgba(16, 185, 129, 0.08)'
-                      : baggageRecommendation.tone === 'warning'
-                      ? 'rgba(245, 158, 11, 0.1)'
-                      : 'rgba(148, 163, 184, 0.08)',
-                  border: `1px solid ${
-                    baggageRecommendation.tone === 'success'
-                      ? 'rgba(16, 185, 129, 0.25)'
-                      : baggageRecommendation.tone === 'warning'
-                      ? 'rgba(245, 158, 11, 0.3)'
-                      : 'rgba(148, 163, 184, 0.3)'
-                  }`,
-                }}
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-lg font-semibold" style={{ color: 'var(--theme-font)' }}>
-                      {baggageRecommendation.title}
-                    </p>
-                    <p className="mt-2 text-sm leading-6" style={{ color: 'var(--theme-font)', opacity: 0.85 }}>
-                      {baggageRecommendation.description}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm font-semibold" style={{ color: 'var(--theme-font)', opacity: 0.85 }}>
-                    <span>
-                      {baggageRecommendation.tone === 'success'
-                        ? '✅'
-                        : baggageRecommendation.tone === 'warning'
-                        ? '⚠️'
-                        : 'ℹ️'}
-                    </span>
-                    <span>
-                      {checkInRequired
-                        ? t('Please take this bag to check-in.') || 'Please take this bag to check-in.'
-                        : t('This bag is okay for cabin baggage.') || 'This bag is okay for cabin baggage.'}
-                    </span>
-                  </div>
-                </div>
-              </div>
+
             </>
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-6 mt-10 flex-wrap justify-center">
+          <div className="flex gap-6 mt-16 flex-wrap justify-center">
             <button
               className="px-8 py-3 font-semibold rounded-xl transition-all duration-200"
               style={{
-                backgroundColor: "rgba(0, 0, 0, 0.05)",
-                border: `1px solid var(--theme-border)`,
-                color: "var(--theme-font)",
+                backgroundColor: "var(--theme-font)",
+                border: `1px solid var(--theme-font)`,
+                color: "var(--theme-bg)",
               }}
               onClick={() => navigate(-1)}
             >
               {t("scanAgain")}
             </button>
             <button
-              className={`px-8 py-3 font-semibold rounded-xl transition-all duration-200 ${
-                !isReady
-                  ? "cursor-not-allowed"
-                  : "hover:scale-105 shadow-lg"
-              }`}
+              className={`px-8 py-3 font-semibold rounded-xl transition-all duration-200 ${!isReady
+                ? "cursor-not-allowed"
+                : "hover:scale-105 shadow-lg"
+                }`}
               style={{
                 backgroundColor: !isReady
-                  ? "rgba(0, 0, 0, 0.05)"
-                  : "rgba(0, 0, 0, 0.1)",
+                  ? "rgba(255, 255, 255, 0.62)"
+                  : "var(--theme-font)",
                 border: `1px solid var(--theme-border)`,
-                color: "var(--theme-font)",
-                opacity: !isReady ? 0.5 : 1,
+                color: "var(--theme-bg)",
+                opacity: !isReady ? 1 : 1,
               }}
               onClick={handleCompleteCheck}
               disabled={!isReady}
