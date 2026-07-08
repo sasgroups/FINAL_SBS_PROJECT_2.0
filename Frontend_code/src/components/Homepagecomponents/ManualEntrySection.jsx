@@ -1,5 +1,18 @@
 import React, { useState, useRef, useEffect } from "react";
 
+const airlineLogos = {
+  "Fly91": "/images/fly91.png",
+  "Akasa Air": "/images/akasa.png",
+  "IndiGo": "/images/indigo.png",
+  "SpiceJet": "/images/spicejet.png",
+};
+
+const normalizeAirline = (name) => name?.replace(/\s/g, '').toLowerCase();
+const normalizedLogos = Object.keys(airlineLogos).reduce((acc, key) => {
+  acc[normalizeAirline(key)] = airlineLogos[key];
+  return acc;
+}, {});
+
 const ManualEntrySection = ({
   flights,
   selectedAirline,
@@ -9,8 +22,6 @@ const ManualEntrySection = ({
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(true);
   const dropdownRef = useRef(null);
-
-  // Drag to scroll state (unchanged)
   const listRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startY, setStartY] = useState(0);
@@ -62,7 +73,6 @@ const ManualEntrySection = ({
   };
   const isReady = Boolean(selectedAirline);
 
-  // 🔥 NEW: Bold, filled airplane icon (classic side view)
   const AirplaneIcon = ({ className = "w-5 h-5" }) => (
     <svg
       className={className}
@@ -74,23 +84,38 @@ const ManualEntrySection = ({
     </svg>
   );
 
+  const AirlineLogo = ({ airline, className }) => {
+    const [error, setError] = useState(false);
+    const logo = normalizedLogos[normalizeAirline(airline)];
+
+    if (error || !logo) {
+      return <AirplaneIcon className={className} />;
+    }
+
+    return (
+      <img
+        src={logo}
+        alt={airline}
+        className={`${className} object-contain rounded-sm`}
+        onError={() => setError(true)}
+      />
+    );
+  };
+
   return (
     <div
-      className="rounded-3xl  relative overflow-hidden h-full shadow-2xl"
+      className="rounded-3xl relative overflow-hidden h-full shadow-2xl"
       style={{
-        background: isReady
-          ? "rgba(255, 255, 255, 0.06)"
-          : "rgba(255, 255, 255, 0.06)",
+        background: isReady ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.06)",
         transition: "background 0.5s ease",
         border: `1px solid rgba(255,255,255,0.08)`,
-
       }}
     >
       <div
         className="relative rounded-[23px] p-6 h-full flex flex-col w-full"
         style={{ backgroundColor: "var(--theme-cardBg)" }}
       >
-        {/* Header - unchanged */}
+        {/* Header */}
         <div
           className="flex items-center gap-3 mb-5 pb-4 border-b"
           style={{ borderColor: "rgba(255,255,255,0.08)" }}
@@ -125,7 +150,6 @@ const ManualEntrySection = ({
 
         {/* Body */}
         <div className="flex-grow flex flex-col justify-between gap-5">
-          {/* Airline Dropdown */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between pl-1">
               <label className="text-[13px] font-bold uppercase tracking-widest text-white flex items-center gap-2">
@@ -150,7 +174,6 @@ const ManualEntrySection = ({
             </div>
 
             <div className="relative" ref={dropdownRef}>
-              {/* Main button */}
               <button
                 type="button"
                 onClick={() => setDropdownOpen((o) => !o)}
@@ -167,9 +190,7 @@ const ManualEntrySection = ({
                 }}
               >
                 <span className="flex items-center gap-3">
-                  {selectedAirline && (
-                    <AirplaneIcon className="w-6 h-6 text-white opacity-90" />
-                  )}
+                  {selectedAirline && <AirlineLogo airline={selectedAirline} className="w-14 h-14" />}
                   <span>{selectedAirline || t("chooseAirline")}</span>
                 </span>
                 <svg
@@ -182,7 +203,6 @@ const ManualEntrySection = ({
                 </svg>
               </button>
 
-              {/* Dropdown panel */}
               {dropdownOpen && (
                 <div
                   ref={listRef}
@@ -229,7 +249,14 @@ const ManualEntrySection = ({
                       No airlines available
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-0 p-1">
+                    <div
+                      className="grid gap-0 p-1"
+                      style={{
+                        gridTemplateColumns: `repeat(${
+                          airlines.length > 4 ? 2 : 1
+                        }, 1fr)`,
+                      }}
+                    >
                       {airlines.map((airline, idx) => (
                         <button
                           key={idx}
@@ -242,7 +269,7 @@ const ManualEntrySection = ({
                             }
                             selectAirline(airline);
                           }}
-                          className="w-full text-left px-3 py-2.5 text-sm font-medium transition-colors duration-100 flex items-center gap-2 select-none rounded-lg"
+                          className="w-full text-left px-3  text-xl font-medium transition-colors duration-100 flex items-center gap-2 select-none rounded-lg"
                           style={{
                             color: "var(--theme-font)",
                             opacity: selectedAirline === airline ? 1 : 0.75,
@@ -262,8 +289,8 @@ const ManualEntrySection = ({
                                 "transparent";
                           }}
                         >
-                          <AirplaneIcon className="w-5 h-5 text-white opacity-70" />
-                          <span className="flex-1">{airline}</span>
+                          <AirlineLogo airline={airline} className="w-16 h-16" />
+                          <span className="flex-1 ml-2">{airline}</span>
                           {selectedAirline === airline && (
                             <svg
                               className="w-3.5 h-3.5 text-white shrink-0 opacity-80"
@@ -288,7 +315,7 @@ const ManualEntrySection = ({
             </div>
           </div>
 
-          {/* Continue Button - unchanged */}
+          {/* Continue Button */}
           <div className="flex items-center justify-center width-full">
             <button
               onClick={onManualEntry}

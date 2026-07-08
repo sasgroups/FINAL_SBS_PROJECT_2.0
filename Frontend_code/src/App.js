@@ -10,6 +10,10 @@ const LoginPage = lazy(() => import('./pages/LoginPage'));
 const AdminLoginPage = lazy(() => import('./pages/Admin'));
 
 
+
+
+
+
 function App() {
   // Disable pinch‑zoom and drag gestures
   useEffect(() => {

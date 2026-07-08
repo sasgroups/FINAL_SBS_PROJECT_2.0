@@ -227,7 +227,7 @@ const ScannerSection = ({ scanning, barcodeDetected, onScan, onShowInstructions 
           </div>
 
           {/* How-to button */}
-          <div className="flex items-center justify-center width-full mt-6" ><button
+          <div className="flex items-center justify-center width-full mt-14" ><button
             onClick={onShowInstructions}
             className="px-3 py-2 rounded-2xl text-[12px] font-bold flex items-center justify-center w-fit gap-2 transition-all border shadow-sm hover:brightness-110"
             style={{
