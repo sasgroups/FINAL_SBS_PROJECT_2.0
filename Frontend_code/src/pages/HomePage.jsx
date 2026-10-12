@@ -288,6 +288,16 @@ const HomePage = () => {
         className="shrink-0 overflow-hidden relative"
         style={{ height: "55dvh", backgroundColor: "var(--theme-cardBg)" }}
       >
+    <img
+        src="/images/swathi.png"
+        alt="SpiceJet"
+        className="absolute top-8 right-8 h-24 w-auto object-contain z-10"
+    />
+        <img
+        src="/images/BIAL.jpg"
+        alt="SpiceJet"
+        className="absolute top-8 left-8 h-24 w-auto object-contain z-10"
+    />
         <AdBanner />
       </div>
 

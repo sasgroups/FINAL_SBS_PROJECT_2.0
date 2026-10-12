@@ -465,45 +465,54 @@ export default function WelcomeAdPage() {
 
       {/* Top Carousel */}
       <div
-        className="h-[11%] min-h-[120px] pb-6 flex flex-col items-center justify-center p-2"
-        style={{
-          background: `linear-gradient(to bottom, var(--theme-bg), var(--theme-bg))`,
-        }}
-      >
-        <div className="w-full h-full flex flex-col items-center justify-center text-center">
-          <h1 className="text-3xl font-bold mb-1 tracking-tight" style={{ color: "var(--theme-font)" }}>
-            {carouselData[carouselIndex].title}
-          </h1>
-          <p className="text-lg mb-2" style={{ color: "var(--theme-font)", opacity: 0.8 }}>
-            {carouselData[carouselIndex].description}
-          </p>
-          <p className="text-xl font-semibold" style={{ color: "var(--theme-fontnew)", opacity: 0.9 }}>
-            Touch anywhere to continue
-          </p>
-        </div>
+    className="relative h-[9%] min-h-[100px] pb-6 flex flex-col items-center justify-center p-2"
+    style={{
+        background: `linear-gradient(to bottom, var(--theme-bg), var(--theme-bg))`,
+    }}
+>
+    {/* Image in top-right corner */}
+    <img
+        src="/images/swathi.png"
+        alt="SpiceJet"
+        className="absolute top-8 right-8 h-24 w-auto object-contain z-10"
+    />
+        <img
+        src="/images/BIAL.jpg"
+        alt="SpiceJet"
+        className="absolute top-8 left-8 h-24 w-auto object-contain z-10"
+    />
 
-        <div className="flex mt-2 gap-2">
-          {carouselData.map((_, idx) => (
+    <div className="w-full h-full flex flex-col items-center justify-center text-center">
+        <h1 className="text-3xl font-bold mb-1 tracking-tight" style={{ color: "var(--theme-font)" }}>
+            {carouselData[carouselIndex].title}
+        </h1>
+        <p className="text-lg mb-2" style={{ color: "var(--theme-font)", opacity: 0.8 }}>
+            {carouselData[carouselIndex].description}
+        </p>
+        <p className="text-xl font-semibold" style={{ color: "var(--theme-fontnew)", opacity: 0.9 }}>
+            Touch anywhere to continue
+        </p>
+    </div>
+
+    <div className="flex mt-2 gap-2">
+        {carouselData.map((_, idx) => (
             <button
-              key={idx}
-              onClick={(e) => {
-                e.stopPropagation();
-                setCarouselIndex(idx);
-              }}
-              className="w-2 h-2 rounded-full transition-all duration-300"
-              style={{
-                backgroundColor:
-                  idx === carouselIndex
-                    ? "var(--theme-font)"
-                    : "rgba(0, 0, 0, 0.5)",
-                opacity: idx === carouselIndex ? 1 : 0.5,
-                transform: idx === carouselIndex ? "scale(1.1)" : "scale(1)",
-              }}
-              aria-label={`Go to slide ${idx + 1}`}
-            ></button>
-          ))}
-        </div>
-      </div>
+                key={idx}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setCarouselIndex(idx);
+                }}
+                className="w-2 h-2 rounded-full transition-all duration-300"
+                style={{
+                    backgroundColor: idx === carouselIndex ? "var(--theme-font)" : "rgba(0, 0, 0, 0.5)",
+                    opacity: idx === carouselIndex ? 1 : 0.5,
+                    transform: idx === carouselIndex ? "scale(1.1)" : "scale(1)",
+                }}
+                aria-label={`Go to slide ${idx + 1}`}
+            />
+        ))}
+    </div>
+</div>
 
       {/* Ad Display Area */}
       <div
