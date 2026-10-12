@@ -269,7 +269,7 @@ export default function MaintenancePage() {
       {/* Filter Panel */}
       <div className="bg-white p-6 rounded-2xl shadow-md mb-8 flex flex-wrap gap-4 justify-center items-center">
         {/* Kiosk */}
-        <select
+        {/* <select
           className="px-4 py-2 rounded-xl border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700"
           value={filterKiosk}
           onChange={(e) => setFilterKiosk(e.target.value)}
@@ -280,7 +280,7 @@ export default function MaintenancePage() {
               {k.name}
             </option>
           ))}
-        </select>
+        </select> */}
 
         {/* Year */}
         <select

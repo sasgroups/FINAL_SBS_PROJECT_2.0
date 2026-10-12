@@ -38,10 +38,10 @@ export default function LoginPage() {
 
   useEffect(() => {
     // If already logged in, redirect immediately
-    if (localStorage.getItem("kioskToken")) {
-      navigate("/ad_player");
-      return;
-    }
+    // if (localStorage.getItem("kioskToken")) {
+    //   navigate("/ad_player");
+    //   return;
+    // }
 
     // Auto-login using env credentials if available
     if (autoLoginAttempted.current || !envKioskName || !envKioskPassword) return;

@@ -210,7 +210,7 @@ const ManualEntrySection = ({
                   onPointerMove={handlePointerMove}
                   onPointerUp={handlePointerUp}
                   onPointerCancel={handlePointerUp}
-                  className="absolute left-0 right-0 mt-2 rounded-2xl z-50"
+                  className="absolute left-0 right-0 mt-2 rounded-2xl"
                   style={{
                     background: "var(--theme-cardBg)",
                     border: "1px solid var(--theme-border)",
@@ -226,19 +226,19 @@ const ManualEntrySection = ({
                 >
                   <style>
                     {`
-                      .absolute.left-0.right-0.mt-2.rounded-2xl.z-50::-webkit-scrollbar {
+                      .absolute.left-0.right-0.mt-2.rounded-2xl::-webkit-scrollbar {
                         width: 4px;
                         height: 4px;
                       }
-                      .absolute.left-0.right-0.mt-2.rounded-2xl.z-50::-webkit-scrollbar-track {
+                      .absolute.left-0.right-0.mt-2.rounded-2xl::-webkit-scrollbar-track {
                         background: rgba(255,255,255,0.08);
                         border-radius: 10px;
                       }
-                      .absolute.left-0.right-0.mt-2.rounded-2xl.z-50::-webkit-scrollbar-thumb {
+                      .absolute.left-0.right-0.mt-2.rounded-2xl.::-webkit-scrollbar-thumb {
                         background: rgba(255,255,255,0.35);
                         border-radius: 10px;
                       }
-                      .absolute.left-0.right-0.mt-2.rounded-2xl.z-50::-webkit-scrollbar-thumb:hover {
+                      .absolute.left-0.right-0.mt-2.rounded-2xl::-webkit-scrollbar-thumb:hover {
                         background: rgba(255,255,255,0.6);
                       }
                     `}

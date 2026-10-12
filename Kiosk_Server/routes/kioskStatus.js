@@ -25,7 +25,7 @@ module.exports = (kiosks, io) => {
 
     kiosks.set(kioskId, updated);
 
-    // console.log(`📡 Kiosk update received from ${kioskId}:`, updated);
+      console.log(`📡 Kiosk update received from ${kioskId}:`, updated);
 
     // Emit only currently active kiosks
     emitActiveKiosks();

@@ -420,6 +420,16 @@ export default function BaggageCheckPage() {
       className="flex flex-col relative overflow-hidden"
       style={{ height: "100dvh", width: "100vw", backgroundColor: "var(--theme-bg)" }}
     >
+    <img
+        src="/images/swathi.png"
+        alt="SpiceJet"
+        className="absolute top-8 right-8 h-24 w-auto object-contain z-10"
+    />
+        <img
+        src="/images/BIAL.jpg"
+        alt="SpiceJet"
+        className="absolute top-8 left-8 h-24 w-auto object-contain z-10"
+    />
       {hardwareError && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
           <div className="rounded-2xl p-10 shadow-2xl max-w-lg text-center transform transition-all scale-100" style={{ backgroundColor: 'var(--theme-cardBg)', border: '1px solid var(--theme-border)' }}>
