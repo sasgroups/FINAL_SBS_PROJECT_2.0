@@ -1,5 +1,31 @@
 // services/flightInfoService.js
-const AIRLINES_API_KEY = "TMnd1Mr0FBG0f97NMROpCg==PLsvH3rLoVsyByxh";
+
+// Offline airline database
+const AIRLINES = {
+  "6E": "IndiGo",
+  "AI": "Air India",
+  "IX": "Air India Express",
+  "UK": "Vistara",
+  "SG": "SpiceJet",
+  "QP": "Akasa Air",
+  "G8": "Go First",
+
+  // Add your FLY91 code here when confirmed
+  // "??": "FLY91",
+
+  "EK": "Emirates",
+  "QR": "Qatar Airways",
+  "SQ": "Singapore Airlines",
+  "EY": "Etihad Airways",
+  "BA": "British Airways",
+  "LH": "Lufthansa",
+  "AF": "Air France",
+  "KL": "KLM",
+  "TK": "Turkish Airlines",
+  "UA": "United Airlines",
+  "AA": "American Airlines",
+  "AC": "Air Canada"
+};
 
 async function getFlightDetails(scanCode) {
   try {
@@ -9,9 +35,15 @@ async function getFlightDetails(scanCode) {
     let destination = "UNK";
     let airlineCode = null;
 
+    // ==============================
+    // M1 BARCODE FORMAT
+    // ==============================
     if (scanCode.startsWith("M1")) {
       const parts = scanCode.split(/\s+/).filter(Boolean);
-      const flightPart = parts.find((p) => /^[A-Z]{6}[A-Z0-9]{2,3}$/.test(p));
+
+      const flightPart = parts.find((p) =>
+        /^[A-Z]{6}[A-Z0-9]{2,3}$/.test(p)
+      );
 
       if (flightPart) {
         origin = flightPart.substring(0, 3);
@@ -20,75 +52,63 @@ async function getFlightDetails(scanCode) {
       }
     }
 
+    // ==============================
+    // OTHER BARCODE FORMATS
+    // ==============================
     if (origin === "UNK" || destination === "UNK") {
       const AIRPORT_REGEX = /\b[A-Z]{3}\b/g;
       const AIRLINE_REGEX = /\b[A-Z0-9]{2}\d{1,4}\b/g;
 
       const airports = scanCode.match(AIRPORT_REGEX) || [];
+
       if (airports.length >= 2) {
         origin = airports[0];
         destination = airports[1];
       }
 
       const airlineMatch = scanCode.match(AIRLINE_REGEX);
+
       if (airlineMatch) {
         airlineCode = airlineMatch[0].substring(0, 2);
       }
     }
 
-    console.log(`🔎 Parsed: Origin=${origin}, Destination=${destination}, AirlineCode=${airlineCode}`);
+    // ==============================
+    // AIRLINE NAME - OFFLINE
+    // ==============================
+    airlineCode = airlineCode?.toUpperCase();
 
-    let airlineName = "Unknown Airline";
-    if (airlineCode) {
-      try {
-        const airlineRes = await fetch(
-          `https://api.api-ninjas.com/v1/airlines?iata=${airlineCode}`,
-          { headers: { "X-Api-Key": AIRLINES_API_KEY } }
-        );
-        const airlineData = await airlineRes.json();
-        airlineName = airlineData.length > 0 ? airlineData[0].name : "Unknown Airline";
-      } catch (err) {
-        console.warn(`⚠️ Failed to fetch airline info for ${airlineCode}: ${err.message}`);
-      }
-    }
+    const airlineName =
+      AIRLINES[airlineCode] || "Unknown Airline";
 
-    async function fetchAirport(iata) {
-      if (!iata || iata === "UNK") return { iata, country: "Unknown" };
-      try {
-        const res = await fetch(
-          `https://api.api-ninjas.com/v1/airports?iata=${iata}`,
-          { headers: { "X-Api-Key": AIRLINES_API_KEY } }
-        );
-        const data = await res.json();
-        return data.length > 0 ? data[0] : { iata, country: "Unknown" };
-      } catch (err) {
-        console.warn(`⚠️ Failed to fetch airport info for ${iata}: ${err.message}`);
-        return { iata, country: "Unknown" };
-      }
-    }
-
-    const originData = await fetchAirport(origin);
-    const destData = await fetchAirport(destination);
-
-    const flightType =
-      originData.country !== "Unknown" &&
-      destData.country !== "Unknown" &&
-      originData.country === destData.country
-        ? "Domestic"
-        : "International";
+    console.log(
+      `🔎 Parsed: Origin=${origin}, Destination=${destination}, AirlineCode=${airlineCode}`
+    );
 
     console.log(`✈ Airline: ${airlineName}`);
-    console.log(`🌍 ${origin} (${originData.country}) → ${destination} (${destData.country}) = ${flightType}`);
 
-    return { origin, destination, airlineName, flightType };
+    // ==============================
+    // KEEP SAME RETURN FORMAT
+    // ==============================
+    return {
+      origin,
+      destination,
+      airlineName,
+      flightType: "Unknown"
+    };
+
   } catch (error) {
-    console.error("❌ Error in getFlightDetails:", error.message);
-    // Return a fallback object instead of throwing, so scanner doesn't crash
+    console.error(
+      "❌ Error in getFlightDetails:",
+      error.message
+    );
+
+    // SAME FALLBACK FORMAT
     return {
       origin: "UNK",
       destination: "UNK",
       airlineName: "Unknown Airline",
-      flightType: "Unknown",
+      flightType: "Unknown"
     };
   }
 }
