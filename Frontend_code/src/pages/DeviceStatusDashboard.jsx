@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import io from "socket.io-client";
-import axios from "axios";
 import {
   Wifi, WifiOff, Scale, Camera, Barcode, AlertCircle,
   RefreshCw, CheckCircle, XCircle, Clock, MapPin, Power,
@@ -13,7 +12,7 @@ const socket = io(API_URL);
 const KioskStatusDashboard = () => {
   const [allKiosks, setAllKiosks] = useState([]);
   const [kioskStatuses, setKioskStatuses] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("all");
   const [lastUpdated, setLastUpdated] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: "status", direction: "desc" });
@@ -62,24 +61,29 @@ const KioskStatusDashboard = () => {
   }, [rawDataLog, showRawData]);
 
   const fetchAllKiosks = async () => {
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 8000);
     try {
-      const res = await axios.get(`${API_URL}/api/kiosks/getAllKiosks`);
-      setAllKiosks(res.data || []);
-    } catch (err) {
-      console.error("Error fetching all kiosks:", err);
-    }
+      const res = await fetch(`${API_URL}/api/kiosks/getAllKiosks`, { signal: abortController.signal });
+      clearTimeout(timeoutId);
+      if (!res.ok) throw new Error("Fetch Error");
+      const data = await res.json();
+      setAllKiosks(data || []);
+    } catch (err) {}
   };
 
   const fetchStatuses = useCallback(async () => {
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 2000); // Strict timeout for 3s poll
     try {
-      const res = await axios.get(`${API_URL}/api/kiosks/all`);
-      const data = res.data || {};
-      setKioskStatuses(data);
+      const res = await fetch(`${API_URL}/api/kiosks/all`, { signal: abortController.signal });
+      clearTimeout(timeoutId);
+      if (!res.ok) throw new Error("Fetch Error");
+      const data = await res.json();
+      setKioskStatuses(data || {});
       setLastUpdated(new Date());
       addToLog("REST Poll", data);
-    } catch (err) {
-      console.error("Error fetching kiosk statuses:", err);
-    }
+    } catch (err) {}
   }, []);
 
   const addToLog = (source, data) => {
@@ -295,9 +299,9 @@ console.log("test",filteredKiosks)
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {loading ? ( 
+              {loading && filteredKiosks.length === 0 ? ( 
                 <tr><td colSpan="7" className="px-6 py-12 text-center"><div className="flex justify-center items-center"><RefreshCw className="animate-spin text-blue-500 mr-3" /><span>Loading...</span></div></td></tr>
-              ) : filteredKiosks.length === 0 ? (
+              ) : filteredKiosks.length === 0 && !loading ? (
                 <tr><td colSpan="7" className="px-6 py-12 text-center"><div className="flex flex-col items-center text-gray-500"><AlertCircle size={48} className="mb-4" /><p>No kiosks found</p></div></td></tr>
               ) : (
                 filteredKiosks.map((kiosk) => (

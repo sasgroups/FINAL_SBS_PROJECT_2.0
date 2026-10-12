@@ -10,7 +10,7 @@ import LoadingOverlay from "../components/Homepagecomponents/LoadingOverlay";
 import ScannerSection from "../components/Homepagecomponents/ScannerSection";
 import ManualEntrySection from "../components/Homepagecomponents/ManualEntrySection";
 import InstructionsModal from "../components/Homepagecomponents/InstructionsModal";
-import Timmer from "../components/Timmer";
+import Timmer from "../components/Timer.jsx";
 import AssistanceFooter from "../components/Homepagecomponents/AssistanceFooter";
 import AirportHeader from "../components/Homepagecomponents/AirportHeader";
 import BackgroundElements from "../components/Homepagecomponents/BackgroundElements";
@@ -25,9 +25,8 @@ const socket = io(API_URL2, { transports: ['websocket'] });
 
 const HomePage = () => {
   const [flights, setFlights] = useState([]);
-  
+
   const [selectedAirline, setSelectedAirline] = useState("");
-  const [selectedFlightType, setSelectedFlightType] = useState("");
   const [loadingFlight, setLoadingFlight] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [barcodeDetected, setBarcodeDetected] = useState(false);
@@ -35,7 +34,7 @@ const HomePage = () => {
   const [showInstructions, setShowInstructions] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [errorModal, setErrorModal] = useState(null); // New state for persistent error modal
+  const [errorModal, setErrorModal] = useState(null);
 
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -133,15 +132,12 @@ const HomePage = () => {
     }
 
     const baggageData = createBaggageData(matchedFlight, details);
-    // Update loading overlay with actual flight details
     setLoadingFlight({
       name: baggageData.airline,
       logo: baggageData.airlineLogo,
       flight: baggageData.flightNumber,
     });
-    // Navigate immediately – no artificial delay
     navigate("/baggageCheckPage", { state: { baggageData } });
-    // Reset states after navigation (component will unmount, but still clean up)
     setLoadingFlight(null);
     setBarcodeDetected(false);
     setIsProcessing(false);
@@ -154,7 +150,6 @@ const HomePage = () => {
     console.log("Scanned airline name:", scannedAirline);
     console.log("Scanned airline code:", scannedCode);
 
-    // First try exact match on airline code (only if both are defined)
     if (scannedCode) {
       const codeMatch = flights.find(f => {
         const airlineCode = f.code?.trim().toLowerCase();
@@ -166,7 +161,6 @@ const HomePage = () => {
       }
     }
 
-    // Then try exact match on airline name (only if both are defined)
     if (scannedAirline) {
       const exactNameMatch = flights.find(f => {
         const airlineName = f.airline?.trim().toLowerCase();
@@ -178,7 +172,6 @@ const HomePage = () => {
       }
     }
 
-    // Fallback: partial name match (least preferred)
     if (scannedAirline) {
       const partialMatch = flights.find(f => {
         const airlineName = f.airline?.trim().toLowerCase();
@@ -195,18 +188,12 @@ const HomePage = () => {
   };
 
   const createBaggageData = (flight, details) => {
-    const maxWeight = details.flightType === "Domestic"
-      ? flight.max_weight_domestic
-      : flight.max_weight_international;
-
-    const maxVolume = details.flightType === "Domestic"
-      ? flight.max_volume_domestic
-      : flight.max_volume_international;
+    const maxWeight = flight.max_weight;
+    const maxVolume = flight.max_volume;
 
     return {
       airline: flight.airline,
       airlineLogo: flight.logo,
-      flightType: details.flightType,
       origin: details.origin,
       destination: details.destination,
       flightNumber: details.flightNumber,
@@ -219,7 +206,6 @@ const HomePage = () => {
   };
 
   const handleFlightNotFound = () => {
-    // Set persistent modal error instead of temporary toast
     setErrorModal({
       message: "No details found for this flight.",
       show: true,
@@ -255,13 +241,8 @@ const HomePage = () => {
   const createManualBaggageData = (match) => ({
     airline: match.airline,
     airlineLogo: match.logo,
-    flightType: selectedFlightType?.toLowerCase(),
-    maxWeight: selectedFlightType?.toLowerCase() === 'domestic'
-      ? match.max_weight_domestic
-      : match.max_weight_international,
-    maxVolume: selectedFlightType?.toLowerCase() === 'domestic'
-      ? match.max_volume_domestic
-      : match.max_volume_international,
+    maxWeight: match.max_weight,
+    maxVolume: match.max_volume,
     flightNumber: "---",
     passengerName: "Manual Entry",
   });
@@ -290,64 +271,90 @@ const HomePage = () => {
 
   return (
     <div
-      className="h-screen flex flex-col relative overflow-hidden"
+      className="flex flex-col relative overflow-hidden"
       style={{
         ...styles.pageContainer,
+        height: "100dvh",
+        width: "100vw",
         backgroundColor: "var(--theme-bg)",
         color: "var(--theme-font)",
       }}
     >
       <BackgroundElements />
-
       {loadingFlight && <LoadingOverlay loadingFlight={loadingFlight} />}
-      <div className="h-[55vh] bg-black overflow-hidden">
+
+      {/* Ad Banner – 55% of viewport height */}
+      <div
+        className="shrink-0 overflow-hidden relative"
+        style={{ height: "55dvh", backgroundColor: "var(--theme-cardBg)" }}
+      >
         <AdBanner />
       </div>
 
-      <Timmer />
-
+      {/* Bottom section – takes the remaining 45% */}
       <div
-        className="h-[45vh] flex flex-col overflow-hidden"
-        style={{
-          backgroundColor: "var(--theme-cardBg)",
-          color: "var(--theme-font)",
-        }}
+        className="flex flex-col flex-1 overflow-hidden"
+        style={{ backgroundColor: "var(--theme-cardBg)" }}
       >
+        <Timmer />
         <AirportHeader />
-        <div className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="max-w-6xl mx-auto">
+
+        <div className="flex-1 overflow-y-auto px-6 py-2">
+          <div className="max-w-[1100px] mx-auto flex flex-col items-between justify-between gap-16">
             {!socketConnected && (
-              <div className="text-yellow-400 text-sm mb-2"
-                      style={{
-    
-          color: "var(--theme-fontnew)",
-        }}></div>
+              <div
+                className="text-sm mb-1"
+                style={{ color: "var(--theme-fontnew)" }}
+              />
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              <ScannerSection
-                scanning={scanning}
-                barcodeDetected={barcodeDetected}
-                onScan={handleScanButton}
-                onShowInstructions={() => setShowInstructions(!showInstructions)}
-              />
+            <div className="flex flex-col md:flex-row items-stretch gap-6 mb-4">
+              <div className="flex-1 min-w-0">
+                <ScannerSection
+                  scanning={scanning}
+                  barcodeDetected={barcodeDetected}
+                  onScan={handleScanButton}
+                  onShowInstructions={() => setShowInstructions(!showInstructions)}
+                />
+              </div>
 
-              <ManualEntrySection
-                flights={flights}
-                selectedAirline={selectedAirline}
-                setSelectedAirline={setSelectedAirline}
-                selectedFlightType={selectedFlightType}
-                setSelectedFlightType={setSelectedFlightType}
-                onManualEntry={handleManualEntry}
-                t={t}
-              />
+              {/* Desktop Vertical Divider */}
+              <div className="hidden md:flex flex-col items-center justify-center px-2">
+                <div className="w-px bg-white/20 flex-1"></div>
+                <span className="py-6 text-white/40 font-bold tracking-widest text-sm">
+                  {t("or") || "OR"}
+                </span>
+                <div className="w-px bg-white/20 flex-1"></div>
+              </div>
+
+              {/* Mobile Horizontal Divider */}
+              <div className="flex md:hidden items-center justify-center w-full px-2 py-4">
+                <div className="h-px bg-white/20 flex-1"></div>
+                <span className="px-4 text-white/40 font-bold tracking-widest text-sm">
+                  {t("or") || "OR"}
+                </span>
+                <div className="h-px bg-white/20 flex-1"></div>
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <ManualEntrySection
+                  flights={flights}
+                  selectedAirline={selectedAirline}
+                  setSelectedAirline={setSelectedAirline}
+                  onManualEntry={handleManualEntry}
+                  t={t}
+                />
+              </div>
             </div>
 
-            {showInstructions && <InstructionsModal onClose={() => setShowInstructions(false)} />}
-
-            <AssistanceFooter />
+            {showInstructions && (
+              <InstructionsModal onClose={() => setShowInstructions(false)} />
+            )}
           </div>
         </div>
+
+        {/* Footer – now at the bottom of the 45% container */}
+        <AssistanceFooter />
       </div>
 
       {/* Persistent Error Modal */}
@@ -364,15 +371,25 @@ const HomePage = () => {
               <h3 className="text-lg font-semibold">Flight Details</h3>
               <button
                 onClick={() => setErrorModal(null)}
-                className="text-gray-400 hover:text-gray-500 focus:outline-none"
+                className="text-gray-400 hover:text-white focus:outline-none"
               >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
             <div className="mt-2">
-              <p className="text-sm">{errorModal.message}</p>
+              <p className="text-sm text-white">{errorModal.message}</p>
             </div>
             <div className="mt-4 flex justify-end">
               <button
@@ -464,7 +481,7 @@ const styles = {
     /* Selection color */
     ::selection {
       background-color: ${designTokens.primary[500]}40;
-      color: ${designTokens.neutral[900]};
+      color: #ffffff;
     }
   `,
 };

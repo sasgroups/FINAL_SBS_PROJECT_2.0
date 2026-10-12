@@ -8,19 +8,18 @@ import {
   Check, 
   AlertCircle,
   FileVideo,
-  Image as ImageIcon
+  ImageIcon
 } from "lucide-react";
 
 export default function AdUploader({ onUpload }) {
   const [file, setFile] = useState(null);
-  const [kioskId, setKioskId] = useState(""); // Empty for global
+  const [kioskId, setKioskId] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [kiosks, setKiosks] = useState([]);
   const [showKioskDropdown, setShowKioskDropdown] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const API_URL = process.env.REACT_APP_API_URL;
 
-  // Fetch kiosks on component mount
   useEffect(() => {
     fetchKiosks();
   }, []);
@@ -39,16 +38,16 @@ export default function AdUploader({ onUpload }) {
     
     if (!selectedFile) return;
     
-    // Validate file type
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/quicktime'];
     if (!validTypes.includes(selectedFile.type)) {
       alert('Please select an image (JPEG, PNG, GIF, WEBP) or video (MP4, WebM, MOV) file.');
       return;
     }
     
-    // Validate file size (max 100MB)
-    if (selectedFile.size > 100 * 1024 * 1024) {
-      alert('File size must be less than 100MB');
+    // ✅ Changed file size limit from 100MB to 1GB (1024 * 1024 * 1024 bytes)
+    const MAX_SIZE_BYTES = 1024 * 1024 * 1024; // 1 GB
+    if (selectedFile.size > MAX_SIZE_BYTES) {
+      alert('File size must be less than 1GB'); // ✅ updated alert text
       return;
     }
     
@@ -68,7 +67,6 @@ export default function AdUploader({ onUpload }) {
     const formData = new FormData();
     formData.append("file", file);
     
-    // Only append kiosk_id if it's selected
     if (kioskId) {
       formData.append("kiosk_id", kioskId);
     }
@@ -84,7 +82,6 @@ export default function AdUploader({ onUpload }) {
         }
       });
 
-      // Simulate progress completion
       setTimeout(() => {
         setUploadProgress(100);
         setTimeout(() => {
@@ -97,7 +94,8 @@ export default function AdUploader({ onUpload }) {
 
     } catch (err) {
       console.error("Upload error:", err);
-      alert(err.response?.data || "❌ Upload failed. Please try again.");
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || (typeof err.response?.data === 'string' ? err.response?.data : "❌ Upload failed. Please try again.");
+      alert(errorMessage);
       setUploadProgress(0);
     } finally {
       setIsUploading(false);
@@ -179,7 +177,7 @@ export default function AdUploader({ onUpload }) {
                   <p className="text-lg font-semibold text-gray-700 mb-1">Select a file</p>
                   <p className="text-sm text-gray-500 mb-3">or drag and drop here</p>
                   <p className="text-xs text-gray-400">Supports: Images (JPG, PNG, GIF) • Videos (MP4, WebM)</p>
-                  <p className="text-xs text-gray-400 mt-1">Max size: 100MB</p>
+                  <p className="text-xs text-gray-400 mt-1">Max size: 1GB</p> {/* ✅ Updated hint text */}
                 </div>
               )}
             </label>

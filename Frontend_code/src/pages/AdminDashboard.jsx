@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { 
   FaTachometerAlt,   // Dashboard
   FaPlane,           // Airline Management
@@ -10,13 +10,12 @@ import {
 } from 'react-icons/fa';
 import { useNavigate } from "react-router-dom";
 
-import MenageAds from './MenageAds';
-import FlightsDetails from './FlightsDetails';
-import Setteings from './setteings';
-import MaintenancePage from './MaintenancePage';
-import AddKioskPage from './AddKioskPage';
-import DeviceStatusDashboard from './DeviceStatusDashboard';
-import RealTimeApiDashboard from '../components/RealTimeApiDashboard';
+const MenageAds = lazy(() => import('./MenageAds'));
+const FlightsDetails = lazy(() => import('./FlightsDetails'));
+const Setteings = lazy(() => import('./setteings'));
+const MaintenancePage = lazy(() => import('./MaintenancePage'));
+const AddKioskPage = lazy(() => import('./AddKioskPage'));
+const DeviceStatusDashboard = lazy(() => import('./DeviceStatusDashboard'));
 
 const Maintenance = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -63,7 +62,7 @@ const Maintenance = () => {
   return (
     <div className="bg-gray-300 flex">
       {/* Sidebar */}
-      <aside className="fixed left-0 h-full w-20 bg-slate-800 text-white flex flex-col justify-between py-4">
+      <aside className="fixed left-0 h-full w-20 bg-slate-800 text-white flex flex-col  py-4">
         <div>
           {/* 1️⃣ Dashboard */}
           <IconButton 
@@ -126,18 +125,23 @@ const Maintenance = () => {
 
       {/* Main Content */}
       <main className="ml-20 bg-gray-100 min-h-screen p-6 flex-grow overflow-y-auto w-full">
-        {activeTab === "dashboard" && (
-          <>
-            <h2 className="text-2xl font-bold mb-4">Dashboard Overview</h2>
-            <MaintenancePage />
-          </>
-        )}
-        {activeTab === "airlines" && <FlightsDetails />}
-        {activeTab === "adminManager" && <MenageAds />}
-        {activeTab === "systemConfig" && <Setteings />}
-        {activeTab === "kioskManagement" && <AddKioskPage />}
-        {activeTab === "kioskStatus" && <DeviceStatusDashboard />}
-        {/* {activeTab === "RealTimeApiDashboard" && <RealTimeApiDashboard />} */}
+        <Suspense fallback={
+          <div className="flex h-full w-full items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-slate-800"></div>
+          </div>
+        }>
+          {activeTab === "dashboard" && (
+            <>
+              <h2 className="text-2xl font-bold mb-4">Dashboard Overview</h2>
+              <MaintenancePage />
+            </>
+          )}
+          {activeTab === "airlines" && <FlightsDetails />}
+          {activeTab === "adminManager" && <MenageAds />}
+          {activeTab === "systemConfig" && <Setteings />}
+          {activeTab === "kioskManagement" && <AddKioskPage />}
+          {activeTab === "kioskStatus" && <DeviceStatusDashboard />}
+        </Suspense>
       </main>
     </div>
   );

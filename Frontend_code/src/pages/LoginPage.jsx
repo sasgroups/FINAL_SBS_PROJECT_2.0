@@ -3,18 +3,19 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, X } from "lucide-react";
-import AutoKioskSender from "../components/AutoKioskSender";
 import VirtualKeyboard from "../components/VirtualKeyboard";
 
-const API_URL = process.env.REACT_APP_API_URL ;
+const API_URL = process.env.REACT_APP_API_URL || "";
+const envKioskName = (process.env.REACT_APP_KIOSK_NAME || "").trim();
+const envKioskPassword = (process.env.REACT_APP_KIOSK_PASSWORD || "").trim();
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("kiosk");
 
   // Kiosk fields
-  const [kioskName, setKioskName] = useState("");
-  const [kioskPassword, setKioskPassword] = useState("");
+  const [kioskName, setKioskName] = useState(envKioskName);
+  const [kioskPassword, setKioskPassword] = useState(envKioskPassword);
   const [showKioskPassword, setShowKioskPassword] = useState(false);
 
   // Admin fields
@@ -33,6 +34,45 @@ export default function LoginPage() {
   const kioskPasswordRef = useRef(null);
   const adminEmailRef = useRef(null);
   const adminPasswordRef = useRef(null);
+  const autoLoginAttempted = useRef(false);
+
+  useEffect(() => {
+    // If already logged in, redirect immediately
+    if (localStorage.getItem("kioskToken")) {
+      navigate("/ad_player");
+      return;
+    }
+
+    // Auto-login using env credentials if available
+    if (autoLoginAttempted.current || !envKioskName || !envKioskPassword) return;
+    autoLoginAttempted.current = true;
+
+    const autoLogin = async () => {
+      setLoading(true);
+      setError("");
+      setActiveTab("kiosk");
+
+      try {
+        const res = await axios.post(`${API_URL}/api/kiosks/login`, {
+          kiosk_name: envKioskName,
+          password: envKioskPassword,
+        });
+
+        localStorage.setItem("kioskToken", res.data.token);
+        localStorage.setItem("kiosk_id", res.data.kiosk_id);
+        localStorage.setItem("kiosk_name", res.data.kiosk_name);
+        localStorage.setItem("kiosk_location", res.data.kiosk_location);
+
+        navigate("/ad_player");
+      } catch (err) {
+        setError(err.response?.data?.message || "Kiosk login failed");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    autoLogin();
+  }, [navigate]); // envKioskName/envKioskPassword are module-level constants, not reactive
  
   // --- Kiosk Login ---
   const handleKioskLogin = async (e) => {
@@ -108,7 +148,7 @@ export default function LoginPage() {
         {/* <AutoKioskSender /> */}
 
         <h1 className="text-3xl font-bold text-center text-slate-800 mb-6">
-          LOGIN PAGE
+          Login
         </h1>
 
         {/* --- Tabs --- */}

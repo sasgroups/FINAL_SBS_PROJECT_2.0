@@ -3,12 +3,10 @@ import { useTranslation } from "react-i18next";
 
 const languages = [
   { code: "en", label: "English" },
-  { code: "ar", label: "العربية" },
   { code: "hi", label: "हिन्दी" },
-  { code: "bn", label: "বাংলা" },
-  { code: "tl", label: "Tagalog" },
+  { code: "ml", label: "മലയാളം" },   // Malayalam
+  { code: "kn", label: "ಕನ್ನಡ" },    // Kannada
 ];
-
 export default function LanguageTabs() {
   const { i18n } = useTranslation();
 

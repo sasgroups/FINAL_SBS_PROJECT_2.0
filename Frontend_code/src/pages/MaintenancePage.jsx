@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import {
   BarChart,
   Bar,
@@ -16,7 +15,7 @@ const API_URL = process.env.REACT_APP_API_URL;
 export default function MaintenancePage() {
   const [records, setRecords] = useState([]);
   const [filteredRecords, setFilteredRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const [kiosks, setKiosks] = useState([]);
   const [filterKiosk, setFilterKiosk] = useState("");
@@ -47,30 +46,34 @@ export default function MaintenancePage() {
 
   // Fetch kiosks
   useEffect(() => {
+    const abortController = new AbortController();
     const fetchKiosks = async () => {
       try {
-        const res = await axios.get(`${API_URL}/api/kiosks/getAllKiosks`);
-        setKiosks(res.data);
-      } catch (err) {
-        console.error("❌ Failed to fetch kiosks:", err.message);
-      }
+        const res = await fetch(`${API_URL}/api/kiosks/getAllKiosks`, { signal: abortController.signal });
+        if (!res.ok) throw new Error("Fetch failed");
+        const data = await res.json();
+        setKiosks(data);
+      } catch (err) {}
     };
     fetchKiosks();
+    return () => abortController.abort();
   }, []);
 
   // Fetch baggage records
   const fetchRecords = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/api/baggage/all`, {
-        params: { kiosk_id: filterKiosk || undefined },
-      });
-      setRecords(res.data || []);
-      setFilteredRecords(res.data || []);
-    } catch (err) {
-      console.error("❌ Failed to fetch records:", err.message);
-    } finally {
-      setLoading(false);
+      const url = new URL(`${API_URL}/api/baggage/all`);
+      if (filterKiosk) url.searchParams.append("kiosk_id", filterKiosk);
+      
+      const res = await fetch(url.toString());
+      if (!res.ok) throw new Error("Fetch failed");
+      const data = await res.json();
+      setRecords(data || []);
+      setFilteredRecords(data || []);
+    } catch (err) { } 
+    finally {
+      requestAnimationFrame(() => setLoading(false));
     }
   };
 
@@ -168,7 +171,7 @@ export default function MaintenancePage() {
     document.body.removeChild(link);
   };
 
-  if (loading)
+  if (loading && records.length === 0)
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <p className="text-lg font-semibold text-gray-600">Loading records...</p>
@@ -403,7 +406,7 @@ export default function MaintenancePage() {
         ))}
       </div>
 {/* 🌎 Geospatial Heat Map */}
-<GeoHeatMap kioskLocations={kiosks} baggageRecords={filteredRecords} />
+{/* <GeoHeatMap kioskLocations={kiosks} baggageRecords={filteredRecords} /> */}
 
       {/* Chart */}
       <div className="bg-white rounded-2xl shadow-md p-5 mb-8">

@@ -7,8 +7,9 @@ const themes = {
     bg: '#0f172a',
     font: '#ffffff',
     cardBg: '#0f172a',
-    border: '#1e293b',
-    fontnew: '#ffbb00',
+    border: '#151c29',
+    fontnew: '#f1a607'
+   
   },
 };
 

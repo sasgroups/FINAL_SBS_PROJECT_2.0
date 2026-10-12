@@ -6,7 +6,6 @@ const saveBaggageCheck = async (req, res) => {
     const {
       kiosk_id,
       airline,
-      flightType,
       origin,
       destination,
       weight,
@@ -18,7 +17,7 @@ const saveBaggageCheck = async (req, res) => {
     } = req.body;
 
     // ✅ Validate required fields
-    if (!airline || !flightType || !weight || !status) {
+    if (!airline || weight == null || !status) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -38,7 +37,7 @@ const saveBaggageCheck = async (req, res) => {
     const values = [
       kiosk_id || null,
       airline,
-      flightType,
+      null,
       origin || null,
       destination || null,
       weight,

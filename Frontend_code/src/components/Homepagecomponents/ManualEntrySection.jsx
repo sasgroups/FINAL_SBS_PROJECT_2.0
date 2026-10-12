@@ -1,40 +1,131 @@
-// src/components/ManualEntrySection.js
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
+
+const airlineLogos = {
+  "Fly91": "/images/fly91.png",
+  "Akasa Air": "/images/akasa.png",
+  "IndiGo": "/images/indigo.png",
+  "SpiceJet": "/images/spicejet.png",
+};
+
+const normalizeAirline = (name) => name?.replace(/\s/g, '').toLowerCase();
+const normalizedLogos = Object.keys(airlineLogos).reduce((acc, key) => {
+  acc[normalizeAirline(key)] = airlineLogos[key];
+  return acc;
+}, {});
 
 const ManualEntrySection = ({
   flights,
   selectedAirline,
   setSelectedAirline,
-  selectedFlightType,
-  setSelectedFlightType,
   onManualEntry,
-  t
+  t,
 }) => {
+  const [dropdownOpen, setDropdownOpen] = useState(true);
+  const dropdownRef = useRef(null);
+  const listRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startY, setStartY] = useState(0);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [dragged, setDragged] = useState(false);
+
+  const isTouchLikePointer = (pointerType) =>
+    pointerType === "touch" || pointerType === "pen";
+
+  const handlePointerDown = (e) => {
+    if (!listRef.current || !isTouchLikePointer(e.pointerType)) return;
+    setIsDragging(true);
+    setDragged(false);
+    setStartY(e.pageY);
+    setScrollTop(listRef.current.scrollTop);
+    listRef.current.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDragging || !listRef.current || !isTouchLikePointer(e.pointerType)) return;
+    const y = e.pageY;
+    const walk = (y - startY) * 1.5;
+    if (Math.abs(walk) > 5) setDragged(true);
+    listRef.current.scrollTop = scrollTop - walk;
+  };
+
+  const handlePointerUp = (e) => {
+    if (!listRef.current || !isTouchLikePointer(e.pointerType)) return;
+    setIsDragging(false);
+    if (listRef.current && listRef.current.hasPointerCapture(e.pointerId)) {
+      listRef.current.releasePointerCapture(e.pointerId);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const airlines = [...new Set((flights || []).map((f) => f.airline))];
+  const selectAirline = (airline) => {
+    setSelectedAirline(airline);
+    setDropdownOpen(false);
+  };
+  const isReady = Boolean(selectedAirline);
+
+  const AirplaneIcon = ({ className = "w-5 h-5" }) => (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M21 14.5a1.5 1.5 0 01-1.5 1.5h-4.5l-4.5 4.5h-2l1.5-4.5H6l-1.5 2.5H2.5l1-3.5-1-3.5h2.5L6 11h4.5L9 6.5h2l4.5 4.5h4.5a1.5 1.5 0 011.5 1.5v2z" />
+    </svg>
+  );
+
+  const AirlineLogo = ({ airline, className }) => {
+    const [error, setError] = useState(false);
+    const logo = normalizedLogos[normalizeAirline(airline)];
+
+    if (error || !logo) {
+      return <AirplaneIcon className={className} />;
+    }
+
+    return (
+      <img
+        src={logo}
+        alt={airline}
+        className={`${className} object-contain rounded-sm`}
+        onError={() => setError(true)}
+      />
+    );
+  };
+
   return (
     <div
-      className="rounded-2xl p-1.5"
+      className="rounded-3xl relative overflow-hidden h-full shadow-2xl"
       style={{
-        background: "linear-gradient(to bottom right, var(--theme-cardBg), var(--theme-border))",
+        background: isReady ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.06)",
+        transition: "background 0.5s ease",
+        border: `1px solid rgba(255,255,255,0.08)`,
       }}
     >
       <div
-        className="rounded-xl p-6 h-full backdrop-blur-sm"
-        style={{
-          backgroundColor: "var(--theme-cardBg)",
-          border: "1px solid var(--theme-border)",
-        }}
+        className="relative rounded-[23px] p-6 h-full flex flex-col w-full"
+        style={{ backgroundColor: "var(--theme-cardBg)" }}
       >
-        <div className="flex items-center gap-3 mb-8">
+        {/* Header */}
+        <div
+          className="flex items-center gap-3 mb-5 pb-4 border-b"
+          style={{ borderColor: "rgba(255,255,255,0.08)" }}
+        >
           <div
-            className="p-2.5 rounded-lg"
-            style={{
-              backgroundColor: "var(--theme-cardBg)",
-              border: "1px solid var(--theme-border)",
-            }}
+            className="p-3 rounded-2xl flex items-center justify-center shrink-0"
+            style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
           >
             <svg
-              className="w-5 h-5"
-              style={{ color: "var(--theme-font)" }}
+              className="w-6 h-6 text-white"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -48,182 +139,241 @@ const ManualEntrySection = ({
             </svg>
           </div>
           <div>
-            <h2
-              className="text-xl font-bold"
-              style={{ color: "var(--theme-font)" }}
-            >
+            <h2 className="text-xl font-bold text-white drop-shadow-sm leading-tight">
               {t("manualEntry")}
             </h2>
-            <p
-              className="text-sm mt-1"
-              style={{ color: "var(--theme-font)", opacity: 0.7 }}
-            >
-              {t("alternativeMethod")} • 2 minutes • {t("noScannerNeeded")}
+            <p className="text-xs mt-0.5 font-medium text-white opacity-50">
+              {t("alternativeMethod")} • 2 minutes
             </p>
           </div>
         </div>
 
-        <div className="space-y-6">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <label
-                className="text-sm font-semibold flex items-center gap-2"
-                style={{ color: "var(--theme-font)" }}
-              >
-                <svg
-                  className="w-4 h-4"
-                  style={{ color: "var(--theme-font)", opacity: 0.7 }}
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                </svg>
+        {/* Body */}
+        <div className="flex-grow flex flex-col justify-between gap-5">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between pl-1">
+              <label className="text-[13px] font-bold uppercase tracking-widest text-white flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-white opacity-70" />
                 {t("selectAirline")}
               </label>
               {selectedAirline && (
                 <span
-                  className="text-xs font-medium px-2 py-1 rounded-full"
+                  className="text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1.5"
                   style={{
-                    backgroundColor: "rgba(0,0,0,0.05)",
-                    border: "1px solid var(--theme-border)",
-                    color: "var(--theme-font)",
+                    backgroundColor: "rgba(255,255,255,0.12)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    color: "#ffffff",
                   }}
                 >
-                  ✓ {t("selected")}
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                  </svg>
+                  {t("selected")}
                 </span>
               )}
             </div>
-            <select
-              value={selectedAirline}
-              onChange={(e) => setSelectedAirline(e.target.value)}
-              className="w-full p-4 rounded-xl border transition-all duration-200 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none appearance-none"
-              style={{
-                backgroundColor: "var(--theme-cardBg)",
-                borderColor: "var(--theme-border)",
-                color: "var(--theme-font)",
-                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                backgroundPosition: 'right 0.75rem center',
-                backgroundRepeat: 'no-repeat',
-                backgroundSize: '1.5em 1.5em',
-              }}
-            >
-              <option value="" style={{ color: "var(--theme-font)", opacity: 0.6 }}>
-                {t("chooseAirline")}
-              </option>
-              {[...new Set(flights.map((f) => f.airline))].map((airline, idx) => (
-                <option key={idx} value={airline} style={{ color: "var(--theme-font)" }}>
-                  {airline}
-                </option>
-              ))}
-            </select>
-          </div>
 
-          <div>
-            <label
-              className="text-sm font-semibold block mb-3"
-              style={{ color: "var(--theme-font)" }}
-            >
-              {t("flightType")}
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { value: "domestic", icon: "🏠", labelKey: "domestic", descKey: "domesticDesc" },
-                { value: "international", icon: "🌎", labelKey: "international", descKey: "internationalDesc" }
-              ].map((type) => (
-                <button
-                  key={type.value}
-                  onClick={() => setSelectedFlightType(type.value)}
-                  className={`p-4 rounded-xl border transition-all duration-200 flex flex-col items-center justify-center gap-2 ${
-                    selectedFlightType === type.value ? "border-blue-500" : ""
-                  }`}
-                  style={{
-                    backgroundColor:
-                      selectedFlightType === type.value
-                        ? "rgba(59, 130, 246, 0.1)"
-                        : "rgba(0,0,0,0.05)",
-                    borderColor:
-                      selectedFlightType === type.value
-                        ? "var(--theme-border)"
-                        : "var(--theme-border)",
-                  }}
-                >
-                  <span className="text-2xl opacity-90">{type.icon}</span>
-                  <span
-                    className="font-semibold"
-                    style={{
-                      color: "var(--theme-font)",
-                      opacity: selectedFlightType === type.value ? 1 : 0.8,
-                    }}
-                  >
-                    {t(type.labelKey)}
-                  </span>
-                  <span
-                    className="text-xs"
-                    style={{ color: "var(--theme-font)", opacity: 0.6 }}
-                  >
-                    {t(type.descKey)}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-4">
-            <button
-              onClick={onManualEntry}
-              disabled={!selectedAirline || !selectedFlightType}
-              className={`w-full mt-6 py-4 px-6 rounded-xl font-semibold transition-all duration-200 ${
-                selectedAirline && selectedFlightType
-                  ? "hover:shadow-lg"
-                  : "cursor-not-allowed"
-              }`}
-              style={{
-                backgroundColor:
-                  selectedAirline && selectedFlightType
-                    ? "var(--theme-cardBg)"
-                    : "rgba(0,0,0,0.05)",
-                border: `1px solid var(--theme-border)`,
-                color: "var(--theme-font)",
-                opacity: selectedAirline && selectedFlightType ? 1 : 0.5,
-              }}
-            >
-              <div className="flex items-center justify-center gap-3">
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setDropdownOpen((o) => !o)}
+                className="w-full flex items-center justify-between px-4 py-3 rounded-2xl border transition-all duration-200 outline-none font-semibold text-sm cursor-pointer text-left"
+                style={{
+                  color: "var(--theme-font)",
+                  opacity: selectedAirline ? 1 : 0.6,
+                  backgroundColor: selectedAirline
+                    ? "var(--theme-bg)"
+                    : "rgba(255,255,255,0.04)",
+                  borderColor: selectedAirline
+                    ? "var(--theme-border)"
+                    : "rgba(255,255,255,0.1)",
+                }}
+              >
+                <span className="flex items-center gap-3">
+                  {selectedAirline && <AirlineLogo airline={selectedAirline} className="w-14 h-14" />}
+                  <span>{selectedAirline || t("chooseAirline")}</span>
+                </span>
                 <svg
-                  className="w-5 h-5"
+                  className={`w-4 h-4 text-white opacity-50 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M9 5l7 7-7 7"
-                  ></path>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
                 </svg>
-                {selectedAirline && selectedFlightType
-                  ? t("continueToBaggageCheck")
-                  : t("selectAirlineAndType")}
-              </div>
-            </button>
+              </button>
 
-            <p
-              className="text-xs text-center mt-3 flex items-center justify-center gap-1"
-              style={{ color: "var(--theme-font)", opacity: 0.6 }}
+              {dropdownOpen && (
+                <div
+                  ref={listRef}
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerCancel={handlePointerUp}
+                  className="absolute left-0 right-0 mt-2 rounded-2xl z-50"
+                  style={{
+                    background: "var(--theme-cardBg)",
+                    border: "1px solid var(--theme-border)",
+                    boxShadow: "0 20px 40px rgba(0,0,0,0.7)",
+                    maxHeight: 280,
+                    overflowY: "auto",
+                    WebkitOverflowScrolling: "touch",
+                    overscrollBehavior: "contain",
+                    scrollbarWidth: "thin",
+                    scrollbarColor: "rgba(255,255,255,0.4) rgba(255,255,255,0.1)",
+                    touchAction: "pan-y",
+                  }}
+                >
+                  <style>
+                    {`
+                      .absolute.left-0.right-0.mt-2.rounded-2xl.z-50::-webkit-scrollbar {
+                        width: 4px;
+                        height: 4px;
+                      }
+                      .absolute.left-0.right-0.mt-2.rounded-2xl.z-50::-webkit-scrollbar-track {
+                        background: rgba(255,255,255,0.08);
+                        border-radius: 10px;
+                      }
+                      .absolute.left-0.right-0.mt-2.rounded-2xl.z-50::-webkit-scrollbar-thumb {
+                        background: rgba(255,255,255,0.35);
+                        border-radius: 10px;
+                      }
+                      .absolute.left-0.right-0.mt-2.rounded-2xl.z-50::-webkit-scrollbar-thumb:hover {
+                        background: rgba(255,255,255,0.6);
+                      }
+                    `}
+                  </style>
+
+                  {airlines.length === 0 ? (
+                    <div className="px-4 py-3 text-sm text-white opacity-40 text-center">
+                      No airlines available
+                    </div>
+                  ) : (
+                    <div
+                      className="grid gap-0 p-1"
+                      style={{
+                        gridTemplateColumns: `repeat(${
+                          airlines.length > 4 ? 2 : 1
+                        }, 1fr)`,
+                      }}
+                    >
+                      {airlines.map((airline, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={(e) => {
+                            if (dragged) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              return;
+                            }
+                            selectAirline(airline);
+                          }}
+                          className="w-full text-left px-3  text-xl font-medium transition-colors duration-100 flex items-center gap-2 select-none rounded-lg"
+                          style={{
+                            color: "var(--theme-font)",
+                            opacity: selectedAirline === airline ? 1 : 0.75,
+                            backgroundColor:
+                              selectedAirline === airline
+                                ? "var(--theme-border)"
+                                : "transparent",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (selectedAirline !== airline)
+                              e.currentTarget.style.backgroundColor =
+                                "rgba(255,255,255,0.06)";
+                          }}
+                          onMouseLeave={(e) => {
+                            if (selectedAirline !== airline)
+                              e.currentTarget.style.backgroundColor =
+                                "transparent";
+                          }}
+                        >
+                          <AirlineLogo airline={airline} className="w-16 h-16" />
+                          <span className="flex-1 ml-2">{airline}</span>
+                          {selectedAirline === airline && (
+                            <svg
+                              className="w-3.5 h-3.5 text-white shrink-0 opacity-80"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="3"
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Continue Button */}
+          <div className="flex items-center justify-center width-full">
+            <button
+              onClick={onManualEntry}
+              disabled={!isReady}
+              className="w-fit px-8 py-3 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2.5 transition-all duration-300 border"
+              style={
+                isReady
+                  ? {
+                      backgroundColor: "var(--theme-font)",
+                      borderColor: "var(--theme-font)",
+                      color: "var(--theme-bg)",
+                      boxShadow: "0 4px 14px rgba(255,255,255,0.15)",
+                    }
+                  : {
+                      backgroundColor: "var(--theme-border)",
+                      borderColor: "var(--theme-border)",
+                      color: "var(--theme-font)",
+                      opacity: 0.4,
+                      cursor: "not-allowed",
+                    }
+              }
             >
-              <svg
-                className="w-3 h-3"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              {t("noPersonalDataRequired")}
-            </p>
+              {isReady ? (
+                <>
+                  <span>{t("continueToBaggageCheck")}</span>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2.5"
+                      d="M14 5l7 7m0 0l-7 7m7-7H3"
+                    />
+                  </svg>
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-4 h-4 opacity-30"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2.5"
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7z"
+                    />
+                  </svg>
+                  <span>{t("selectAirline")}</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>

@@ -1,8 +1,8 @@
 {
-  "kioskId": 33,
-  "kioskName": "ganesh1",
-  "kioskLocation": "hyddd",
+  "kioskId": 4,
+  "kioskName": "Kiosk-4",
+  "kioskLocation": null,
   "assignedConveyor": null,
   "ip_address": null,
-  "updatedAt": "2026-04-01T12:11:54.120Z"
+  "updatedAt": "2026-08-05T11:14:39.017Z"
 }

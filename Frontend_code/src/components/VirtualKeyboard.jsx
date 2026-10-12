@@ -7,7 +7,7 @@ export default function VirtualKeyboard({ onKeyPress }) {
 
   const letters = "abcdefghijklmnopqrstuvwxyz".split("");
   const numbers = "1234567890".split("");
-  const symbols = "!@#$%^&*()-_=+[]{}".split("");
+  const symbols = "!@#$%^&*()-_=+[]{}.".split(""); // <-- added dot
 
   const handleKeyClick = (key) => {
     if (key === "Backspace") onKeyPress("Backspace");
@@ -28,6 +28,7 @@ export default function VirtualKeyboard({ onKeyPress }) {
       animate={{ opacity: 1, y: 0 }}
       className="keyboard-container bg-slate-100 rounded-2xl p-5 shadow-inner mt-4 text-center select-none"
     >
+      {/* Number row */}
       <div className="flex justify-center mb-2 flex-wrap">
         {numbers.map((n) => (
           <motion.button
@@ -41,6 +42,7 @@ export default function VirtualKeyboard({ onKeyPress }) {
         ))}
       </div>
 
+      {/* Letters / Symbols row */}
       <div className="flex justify-center mb-2 flex-wrap">
         {getDisplayKeys().map((key) => (
           <motion.button
@@ -54,6 +56,7 @@ export default function VirtualKeyboard({ onKeyPress }) {
         ))}
       </div>
 
+      {/* Bottom control row */}
       <div className="flex justify-center gap-2 mt-3 flex-wrap">
         <motion.button
           whileTap={{ scale: 0.9 }}
@@ -81,6 +84,15 @@ export default function VirtualKeyboard({ onKeyPress }) {
           onClick={() => handleKeyClick("Space")}
         >
           Space
+        </motion.button>
+
+        {/* New permanent dot button */}
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          className="px-4 py-2 rounded-lg text-lg font-semibold shadow bg-white text-slate-800 hover:bg-slate-200"
+          onClick={() => handleKeyClick(".")}
+        >
+          .
         </motion.button>
 
         <motion.button

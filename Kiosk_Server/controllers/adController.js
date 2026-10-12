@@ -4,6 +4,9 @@ const fs = require('fs');
 const crypto = require('crypto');
 const db = require('../db');
 
+// Keep track of connected SSE clients specifically for instantaneous ad pushes
+const sseClients = new Set();
+
 // ✅ Get ads for specific kiosk (global + kiosk-specific)
 exports.getAdsForKiosk = async (req, res) => {
   try {
@@ -30,10 +33,11 @@ exports.getAdsForKiosk = async (req, res) => {
     `, [kioskId]);
 
     if (include_metadata === 'true') {
-      // Add file metadata
+      // Add file metadata using writable external directory
       const adsWithMetadata = await Promise.all(
         ads.map(async (ad) => {
-          const filePath = path.join(__dirname, '../uploads/', ad.filename);
+          // FIXED: Use process.cwd() instead of __dirname
+          const filePath = path.join(process.cwd(), 'uploads', ad.filename);
           try {
             const stats = fs.statSync(filePath);
             const fileBuffer = fs.readFileSync(filePath);
@@ -78,6 +82,69 @@ exports.getAdsForKiosk = async (req, res) => {
   }
 };
 
+// ✅ Check if ad updates exist for a kiosk (lightweight polling)
+exports.checkAdUpdates = async (req, res) => {
+  try {
+    const { kioskId } = req.params;
+    
+    if (!kioskId) {
+      return res.status(400).json({ error: 'Kiosk ID is required' });
+    }
+
+    const [result] = await db.execute(`
+      SELECT 
+        COUNT(*) as count, 
+        MAX(id) as max_id
+      FROM ads a
+      WHERE (a.kiosk_id IS NULL OR a.kiosk_id = ?)
+    `, [kioskId]);
+
+    const info = result[0] || { count: 0, max_id: 0 };
+    
+    res.json({
+      success: true,
+      count: info.count || 0,
+      max_id: info.max_id || 0
+    });
+  } catch (err) {
+    console.error('Error checking ad updates:', err);
+    res.status(500).json({ error: 'Error checking updates' });
+  }
+};
+
+// ✅ Server-Sent Events (SSE) for Real-Time Ad Updates without polling
+exports.adUpdatesStream = (req, res) => {
+  const { kioskId } = req.params;
+  
+  // Standard SSE Headers
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*'
+  });
+  
+  // Send initial acknowledge heartbeat
+  res.write(`data: ${JSON.stringify({ event: 'connected', kioskId })}\n\n`);
+  
+  const client = { id: Date.now() + Math.random(), kioskId, res };
+  sseClients.add(client);
+  
+  // Heartbeat to keep connection alive
+  const heartbeat = setInterval(() => {
+    if (client.res.writable) {
+      client.res.write(`:\n\n`);
+    } else {
+      clearInterval(heartbeat);
+    }
+  }, 30000);
+  
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    sseClients.delete(client);
+  });
+};
+
 // ✅ Get ads for sync (background synchronization)
 exports.getAdsForSync = async (req, res) => {
   try {
@@ -101,9 +168,10 @@ exports.getAdsForSync = async (req, res) => {
       ads: []
     };
 
-    // Add file metadata and hash
+    // Add file metadata and hash using writable external directory
     for (const ad of ads) {
-      const filePath = path.join(__dirname, '../uploads/', ad.filename);
+      // FIXED: Use process.cwd() instead of __dirname
+      const filePath = path.join(process.cwd(), 'uploads', ad.filename);
       try {
         const stats = fs.statSync(filePath);
         const fileBuffer = fs.readFileSync(filePath);
@@ -155,7 +223,6 @@ exports.uploadAd = async (req, res) => {
       return res.status(400).json({ error: 'Invalid file type' });
     }
 
-    // Set file type
     const type = file.mimetype.startsWith('video') ? 'video' : 'image';
     
     // Generate unique filename
@@ -164,7 +231,15 @@ exports.uploadAd = async (req, res) => {
     const fileExtension = path.extname(file.name);
     const uniqueFilename = `${type}_${timestamp}_${randomString}${fileExtension}`;
     
-    const uploadPath = path.join(__dirname, '../uploads/', uniqueFilename);
+    // ---- FIX: Use writable external directory ----
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    const uploadPath = path.join(uploadsDir, uniqueFilename);
+    
+    // Ensure the directory exists
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    // ---------------------------------------------
 
     // Move the file
     await file.mv(uploadPath);
@@ -174,25 +249,47 @@ exports.uploadAd = async (req, res) => {
     const file_hash = crypto.createHash('md5').update(fileBuffer).digest('hex');
     const file_size = file.size;
 
-    // Parse kiosk_id (null for global ads)
     const parsedKioskId = kiosk_id && kiosk_id !== '' ? parseInt(kiosk_id) : null;
 
-    // Check if kiosk exists (if kiosk-specific ad)
+    // Prevent duplicate ads
+    let duplicateQuery = 'SELECT id FROM ads WHERE file_hash = ? AND ';
+    let dupParams = [file_hash];
+    
+    if (parsedKioskId === null) {
+      duplicateQuery += 'kiosk_id IS NULL';
+    } else {
+      duplicateQuery += 'kiosk_id = ?';
+      dupParams.push(parsedKioskId);
+    }
+    
+    const [duplicate] = await db.execute(duplicateQuery, dupParams);
+    
+    if (duplicate.length > 0) {
+      fs.unlinkSync(uploadPath);
+      return res.status(409).json({ error: 'ALREADY AD EXISTS: This specific advertisement media is already uploaded for this target.' });
+    }
+
     if (parsedKioskId) {
       const [kiosk] = await db.execute('SELECT id FROM kiosks WHERE id = ?', [parsedKioskId]);
       if (kiosk.length === 0) {
-        fs.unlinkSync(uploadPath); // Clean up
+        fs.unlinkSync(uploadPath);
         return res.status(404).json({ error: 'Kiosk not found' });
       }
     }
 
-    // Insert into database
     const [result] = await db.execute(
       `INSERT INTO ads 
        (filename, type, kiosk_id, file_hash, file_size) 
        VALUES (?, ?, ?, ?, ?)`,
       [uniqueFilename, type, parsedKioskId, file_hash, file_size]
     );
+
+    // Notify SSE clients
+    sseClients.forEach(client => {
+        if (!parsedKioskId || client.kioskId === String(parsedKioskId)) {
+            client.res.write(`data: ${JSON.stringify({ event: 'ads_updated' })}\n\n`);
+        }
+    });
 
     res.json({
       success: true,
@@ -237,7 +334,8 @@ exports.downloadAd = async (req, res) => {
       return res.status(403).json({ error: 'Ad not accessible to this kiosk' });
     }
 
-    const filePath = path.join(__dirname, '../uploads/', ad.filename);
+    // FIXED: Use process.cwd() instead of __dirname
+    const filePath = path.join(process.cwd(), 'uploads', ad.filename);
     
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: 'File not found' });
@@ -323,12 +421,21 @@ exports.deleteAd = async (req, res) => {
     // Delete from database
     await db.execute('DELETE FROM ads WHERE id = ?', [id]);
     
-    // Delete file
-    const filePath = path.join(__dirname, '../uploads/', ad[0].filename);
+    // Delete file from writable external directory
+    // FIXED: Use process.cwd() instead of __dirname
+    const filePath = path.join(process.cwd(), 'uploads', ad[0].filename);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
     
+    // Notify connected SSE clients directly without dependencies
+    sseClients.forEach(client => {
+      // If it's a global ad or matching kiosk, send the refresh command
+      if (!ad[0].kiosk_id || client.kioskId === String(ad[0].kiosk_id)) {
+          client.res.write(`data: ${JSON.stringify({ event: 'ads_updated' })}\n\n`);
+      }
+    });
+
     res.json({
       success: true,
       message: 'Ad deleted successfully',

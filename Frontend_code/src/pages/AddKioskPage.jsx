@@ -60,6 +60,7 @@ export default function AddKioskPage() {
       const res = await axios.get(`${API_URL}/api/kiosks`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+
       setKiosks(res.data);
     } catch (err) {
       console.error("Fetch kiosks failed:", err);
@@ -67,6 +68,8 @@ export default function AddKioskPage() {
         localStorage.removeItem("adminToken");
         navigate("/");
       } else {
+
+        
         setStatus({ type: "error", message: "Failed to fetch kiosks" });
       }
     }

@@ -6,7 +6,7 @@ export const designTokens = {
     300: "#93c5fd",
     400: "#60a5fa",
     500: "#3b82f6",
-    600: "#2563eb",
+    600: "#2969f3",
     700: "#1d4ed8",
     800: "#1e40af",
     900: "#1e3a8a",
@@ -88,7 +88,7 @@ export const designTokens = {
   glass: {
     light: "rgba(255, 255, 255, 0.72)",
     dark: "rgba(15, 23, 42, 0.72)",
-    border: "rgba(255, 255, 255, 0.18)",
+    border: "rgba(255, 1, 1, 0.18)",
     shadow: "0 8px 32px 0 rgba(31, 38, 135, 0.17)",
     blur: "blur(10px)",
   },

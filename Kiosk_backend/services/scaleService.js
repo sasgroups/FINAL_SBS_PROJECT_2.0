@@ -44,6 +44,7 @@ const startMonitor = () => {
     const now = Date.now();
     if (now - lastReceivedTime > 5000 && scaleStatus === "Online") {
       scaleStatus = "Offline";
+      currentWeight = 0;
       console.log(`Kiosk ${kioskId || 'Unknown'}: No data for 5s → Scale Offline`);
       emitStatus();
     }
@@ -84,6 +85,7 @@ const openPort = () => {
       console.error('Failed to open port:', err.message);
       scheduleReconnect();
       scaleStatus = "Error";
+      currentWeight = 0;
       emitStatus();
       return;
     }
@@ -123,6 +125,7 @@ const openPort = () => {
   portInstance.on('error', (err) => {
     console.error('Serial port error:', err.message);
     scaleStatus = "Error";
+    currentWeight = 0;
     emitStatus();
     scheduleReconnect();
   });
@@ -130,6 +133,7 @@ const openPort = () => {
   portInstance.on('close', () => {
     console.log(`Port ${comPort} closed`);
     scaleStatus = "Offline";
+    currentWeight = 0;
     emitStatus();
     scheduleReconnect();
   });

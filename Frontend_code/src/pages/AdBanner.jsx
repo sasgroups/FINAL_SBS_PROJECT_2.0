@@ -165,6 +165,10 @@ export default function AdBanner() {
             }, duration);
           })
           .catch((e) => {
+            if (e.name === 'AbortError') {
+              // Ignore AbortError: caused when component unmounts or src changes rapidly
+              return;
+            }
             console.error("Video play failed:", e);
             // If video fails, skip to next ad
             setCurrentAdIndex(prev => (prev + 1) % ads.length);
@@ -378,7 +382,7 @@ export default function AdBanner() {
       {/* Video element (hidden when showing an image) */}
       <video
         ref={videoRef}
-        className={`w-full h-full object-contain ${isVideo ? 'block' : 'hidden'}`}
+        className={`w-full h-full object-cover object-center ${isVideo ? 'block' : 'hidden'}`}
         muted
         playsInline
         disablePictureInPicture
@@ -396,7 +400,7 @@ export default function AdBanner() {
           ref={imageRef}
           src={adSource}
           alt={currentAd.title || "Ad"}
-          className="w-full h-full object-contain"
+          className="w-full h-full object-cover object-center"
           onError={handleImageError}
         />
       )}
